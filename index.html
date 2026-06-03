@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lit-Based Proposal Builder</title>
+    <link rel="stylesheet" href="styles-upload.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Proposal builder progress">
+        <div class="brand">
+          <div>
+            <h1>Lit-Based Proposal Builder</h1>
+            <p>From literature to proposal</p>
+          </div>
+        </div>
+
+        <section class="dashboard" aria-label="Dashboard">
+          <div class="dashboard-row">
+            <span>Completion</span>
+            <strong id="completionText">0%</strong>
+          </div>
+          <div class="meter" aria-hidden="true"><span id="completionBar"></span></div>
+          <div class="dashboard-grid">
+            <div>
+              <span>Alignment</span>
+              <strong id="alignmentScore">0</strong>
+            </div>
+            <div>
+              <span>Stage</span>
+              <strong id="currentStage">A1</strong>
+            </div>
+          </div>
+        </section>
+
+        <nav class="stage-nav" id="stageNav" aria-label="Stages"></nav>
+
+        <section class="side-panel">
+          <h2>Outstanding Issues</h2>
+          <ul id="issueList">
+            <li>Start with A1 to begin checking alignment.</li>
+          </ul>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Guided academic thinking tool</p>
+            <h2 id="stageTitle">Info - Student Details</h2>
+          </div>
+          <div class="top-actions">
+            <button class="ghost" id="studentDetailsBtn" type="button">Student Details</button>
+            <button class="ghost" id="uploadFormsBtn" type="button">Upload A1 Form</button>
+            <button class="ghost" id="importBtn" type="button">Restore Backup</button>
+            <button class="ghost" id="exportBtn" type="button">Download Backup</button>
+            <button class="danger" id="resetBtn" type="button">Reset</button>
+          </div>
+        </header>
+
+        <section class="support-note" aria-live="polite">
+          <strong>This is a working draft.</strong>
+          Research ideas become clearer through refinement. It is okay if this changes later.
+        </section>
+
+        <form id="stageForm" class="stage-form"></form>
+
+        <section class="checker-panel" aria-label="Feedback">
+          <div class="checker-head">
+            <h3>Check My Work</h3>
+            <button id="checkBtn" type="button">Run Check</button>
+          </div>
+          <div id="feedback" class="feedback">
+            Add your working ideas, then run a check for alignment suggestions.
+          </div>
+        </section>
+
+        <footer class="footer-actions">
+          <button class="ghost" id="backBtn" type="button">Back</button>
+          <button id="saveBtn" type="button">Save Draft</button>
+          <button id="summaryBtn" type="button">Generate Proposal Summary</button>
+          <button id="previewBtn" type="button">Preview Submission</button>
+          <button class="primary" id="nextBtn" type="button">Next</button>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="previewDialog">
+      <div class="dialog-header">
+        <h2>PDF Submission Preview</h2>
+        <button class="ghost" id="closePreviewBtn" type="button">Close</button>
+      </div>
+      <article id="submissionPreview" class="submission"></article>
+      <div class="dialog-actions">
+        <button id="printBtn" type="button">Print</button>
+        <button class="primary" id="pdfBtn" type="button">Generate PDF</button>
+      </div>
+    </dialog>
+
+    <dialog id="studentDetailsDialog">
+      <div class="dialog-header">
+        <h2>Student Details</h2>
+        <button class="ghost" id="closeStudentDetailsBtn" type="button">Close</button>
+      </div>
+      <section class="details-panel">
+        <div class="field-grid">
+          <div class="field">
+            <label for="details-studentName">Student Name</label>
+            <input id="details-studentName" data-section="submission" data-key="studentName" />
+          </div>
+          <div class="field">
+            <label for="details-course">Course</label>
+            <input id="details-course" data-section="submission" data-key="course" />
+          </div>
+          <div class="field">
+            <label for="details-section">Section</label>
+            <input id="details-section" data-section="submission" data-key="section" />
+          </div>
+          <div class="field">
+            <label for="details-submissionDate">Date</label>
+            <input id="details-submissionDate" data-section="submission" data-key="submissionDate" />
+          </div>
+          <div class="field full">
+            <label for="details-confidence">Confidence Rating</label>
+            <textarea id="details-confidence" data-section="submission" data-key="confidence"></textarea>
+            <p class="hint">Example: 3/5 because my questions are clear but my instruments need refinement.</p>
+          </div>
+        </div>
+      </section>
+    </dialog>
+
+    <dialog id="uploadDialog">
+      <div class="dialog-header">
+        <h2 id="uploadDialogTitle">Upload Accomplished Form</h2>
+        <button class="ghost" id="closeUploadBtn" type="button">Close</button>
+      </div>
+      <section class="upload-panel">
+        <p class="hint" id="uploadDialogHint">Upload the accomplished form for the current A-stage as DOCX, PDF, or text. The app will extract text and prepare suggested entries. Please review before applying.</p>
+        <input id="formUploadFile" type="file" accept=".docx,.pdf,.txt" multiple />
+        <div id="uploadFeedback" class="feedback">No files selected yet.</div>
+      </section>
+      <div class="dialog-actions">
+        <button class="ghost" id="clearUploadBtn" type="button">Clear</button>
+        <button class="primary" id="applyUploadBtn" type="button">Apply Extracted Entries</button>
+      </div>
+    </dialog>
+
+    <input id="importFile" type="file" accept="application/json" hidden />
+    <script src="jszip.min.js"></script>
+    <script src="app-upload.js"></script>
+  </body>
+</html>
