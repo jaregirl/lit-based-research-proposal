@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lit-Based Proposal Builder</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles-upload.css" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -53,7 +53,6 @@
           </div>
           <div class="top-actions">
             <button class="ghost" id="studentDetailsBtn" type="button">Student Details</button>
-            <button class="ghost" id="uploadFormsBtn" type="button">Upload A1 Form</button>
             <button class="ghost" id="importBtn" type="button">Restore Backup</button>
             <button class="ghost" id="exportBtn" type="button">Download Backup</button>
             <button class="danger" id="resetBtn" type="button">Reset</button>
@@ -125,32 +124,18 @@
             <input id="details-submissionDate" data-section="submission" data-key="submissionDate" />
           </div>
           <div class="field full">
-            <label for="details-initialReadiness">Initial Readiness Reflection</label>
-            <textarea id="details-initialReadiness" data-section="submission" data-key="initialReadiness"></textarea>
-            <p class="hint">Before starting A1, briefly state how ready you think your proposal idea is.</p>
+            <div class="field-label">
+              <label for="details-initialReadiness">Initial Readiness Reflection</label>
+              <span class="help-icon" role="button" tabindex="0" aria-label="Guidance for Initial Readiness Reflection" aria-describedby="details-initialReadiness-help">?</span>
+              <span class="help-tooltip" id="details-initialReadiness-help" role="tooltip">Before starting A1, briefly state how ready you think your proposal idea is.</span>
+            </div>
+            <textarea id="details-initialReadiness" data-section="submission" data-key="initialReadiness" aria-describedby="details-initialReadiness-help"></textarea>
           </div>
         </div>
       </section>
     </dialog>
 
-    <dialog id="uploadDialog">
-      <div class="dialog-header">
-        <h2 id="uploadDialogTitle">Upload Accomplished Form</h2>
-        <button class="ghost" id="closeUploadBtn" type="button">Close</button>
-      </div>
-      <section class="upload-panel">
-        <p class="hint" id="uploadDialogHint">Upload the accomplished form for the current A-stage as DOCX, PDF, or text. The app will extract text and prepare suggested entries. Please review before applying.</p>
-        <input id="formUploadFile" type="file" accept=".docx,.pdf,.txt" multiple />
-        <div id="uploadFeedback" class="feedback">No files selected yet.</div>
-      </section>
-      <div class="dialog-actions">
-        <button class="ghost" id="clearUploadBtn" type="button">Clear</button>
-        <button class="primary" id="applyUploadBtn" type="button">Apply Extracted Entries</button>
-      </div>
-    </dialog>
-
     <input id="importFile" type="file" accept="application/json" hidden />
-    <script src="jszip.min.js"></script>
-    <script src="app-upload.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>

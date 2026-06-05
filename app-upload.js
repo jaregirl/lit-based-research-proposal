@@ -66,11 +66,11 @@ const fieldSets = {
     ["coreConstruct", "Final declaration: This study is about _____.", "State the core construct plainly. A clear construct prevents scattered literature review, artificial gap statements, and vague problem formulation."]
   ],
   a4: [
-    ["literatureProblem", "State the literature-based problem.", "Use the movement from A3: what studies show, what remains less visible, and what this prevents us from understanding."],
-    ["centralQuestion", "Write the central research question.", "The CRQ should respond directly to the literature-based problem, not only to personal interest."],
-    ["questionType", "What kind of understanding is needed?", "Decide whether the problem requires measurement, explanation/description, or both. This will later guide methodology."],
-    ["studiedGroup", "Who or what will be examined in your study?", "Use the group, context, or phenomenon made visible by the gap. Keep it feasible."],
-    ["rqConstructs", "Which construct and gap ideas must appear in the questions?", "Carry forward the A1 core construct and A3 final gap. Avoid adding new variables without literature support."]
+    ["literatureProblem", "Literature-Based Problem: What problem becomes visible from your literature gap?", "Use the movement from A3: what studies show, what remains less visible, and what this prevents us from understanding."],
+    ["centralQuestion", "Central Research Question: What broad question will your study answer?", "Write one broad question that directly responds to the literature-based problem. This is the anchor question; the specific questions below should break it into smaller answerable parts."],
+    ["questionType", "Question Focus: What kind of answers will the study need?", "Name whether the study needs numerical description, comparison, relationship, prediction, explanation of experiences or perceptions, evaluation, model/framework development, or mixed/combined answers."],
+    ["studiedGroup", "Study Focus: Who or what is the study about?", "Identify the participant group, context, phenomenon, or object of study made visible by the gap. Keep it feasible."],
+    ["rqConstructs", "Required Ideas: What key construct and gap ideas must appear in the questions?", "Carry forward the A1 core construct and A3 final gap. These ideas should appear in the central question and be unpacked by the specific questions."]
   ],
   methodology: [
     ["rqTypes", "What type of questions are being asked?", "Look at your research questions first. Their verbs usually guide the design: describe, compare, relate, evaluate, or explore."],
@@ -322,16 +322,26 @@ function sentence(parts) {
   return parts.filter((part) => String(part || "").trim()).join(" ");
 }
 
+function helpControl(id, label, text) {
+  return `
+    <span class="help-icon" role="button" tabindex="0" aria-label="Guidance for ${escapeHtml(label)}" aria-describedby="${id}">?</span>
+    <span class="help-tooltip" id="${id}" role="tooltip">${escapeHtml(text)}</span>
+  `;
+}
+
+function draftHelp(section, scaffold) {
+  return section === "submission" ? scaffold : `${scaffold} This is a working draft, and you can refine it later.`;
+}
+
 function renderNav() {
   els.stageNav.innerHTML = stages.map((stage) => {
     const done = stageCompletion(stage.id) > 0.55 ? "done" : "";
     const active = state.currentStage === stage.id ? "active" : "";
     const index = stages.findIndex((item) => item.id === stage.id);
-    const isNext = index === currentIndex() + 1 ? "next-step" : "";
     return `
-      <button class="stage-tab ${active} ${isNext}" type="button" data-stage="${stage.id}" title="Step ${index + 1}: ${stage.title}">
+      <button class="stage-tab ${active}" type="button" data-stage="${stage.id}" title="Step ${index + 1}: ${stage.title}">
         <span class="stage-code">${stage.code}</span>
-        <span class="stage-label"><small>Step ${index + 1}${isNext ? " - Next" : ""}</small>${stage.title}</span>
+        <span class="stage-label"><small>Step ${index + 1}</small>${stage.title}</span>
         <span class="status-dot ${done}" aria-hidden="true"></span>
       </button>
     `;
@@ -395,9 +405,11 @@ function renderFields(section, fields) {
     <div class="field-grid">
       ${fields.map(([key, label, scaffold], index) => `
         <div class="field ${index === fields.length - 1 ? "full" : ""}">
-          <label for="${section}-${key}">${label}</label>
-          <textarea id="${section}-${key}" data-section="${section}" data-key="${key}">${escapeHtml(value(`${section}.${key}`))}</textarea>
-          <p class="hint">${escapeHtml(section === "submission" ? scaffold : `${scaffold} This is a working draft, and you can refine it later.`)}</p>
+          <div class="field-label">
+            <label for="${section}-${key}">${label}</label>
+            ${helpControl(`${section}-${key}-help`, label, draftHelp(section, scaffold))}
+          </div>
+          <textarea id="${section}-${key}" data-section="${section}" data-key="${key}" aria-describedby="${section}-${key}-help">${escapeHtml(value(`${section}.${key}`))}</textarea>
         </div>
       `).join("")}
     </div>
@@ -438,9 +450,11 @@ function renderA2() {
       <button type="button" data-add-row="a2Patterns">Add Pattern</button>
     </section>
     <section class="field">
-      <label for="a2-synthesis">Short synthesis</label>
-      <textarea id="a2-synthesis" data-section="a2" data-key="synthesis">${escapeHtml(value("a2.synthesis"))}</textarea>
-      <p class="hint">Write 5-7 sentences: What seems heavily studied? What approaches dominate? What keeps recurring? What feels less developed?</p>
+      <div class="field-label">
+        <label for="a2-synthesis">Short synthesis</label>
+        ${helpControl("a2-synthesis-help", "Short synthesis", "Write 5-7 sentences: What seems heavily studied? What approaches dominate? What keeps recurring? What feels less developed?")}
+      </div>
+      <textarea id="a2-synthesis" data-section="a2" data-key="synthesis" aria-describedby="a2-synthesis-help">${escapeHtml(value("a2.synthesis"))}</textarea>
     </section>
   `;
 }
@@ -459,24 +473,32 @@ function renderA3() {
     </section>
     <div class="field-grid">
       <div class="field">
-        <label for="a3-strongestGap">Strongest gap</label>
-        <textarea id="a3-strongestGap" data-section="a3" data-key="strongestGap">${escapeHtml(value("a3.strongestGap"))}</textarea>
-        <p class="hint">Choose a gap that is specific, connected to the pattern, shows what cannot yet be understood, and can be examined in a real context.</p>
+        <div class="field-label">
+          <label for="a3-strongestGap">Strongest gap</label>
+          ${helpControl("a3-strongestGap-help", "Strongest gap", "Choose a gap that is specific, connected to the pattern, shows what cannot yet be understood, and can be examined in a real context.")}
+        </div>
+        <textarea id="a3-strongestGap" data-section="a3" data-key="strongestGap" aria-describedby="a3-strongestGap-help">${escapeHtml(value("a3.strongestGap"))}</textarea>
       </div>
       <div class="field">
-        <label for="a3-weakestGap">Weakest gap</label>
-        <textarea id="a3-weakestGap" data-section="a3" data-key="weakestGap">${escapeHtml(value("a3.weakestGap"))}</textarea>
-        <p class="hint">A weak gap often repeats the pattern, only says something is missing, is too broad, or cannot realistically be investigated.</p>
+        <div class="field-label">
+          <label for="a3-weakestGap">Weakest gap</label>
+          ${helpControl("a3-weakestGap-help", "Weakest gap", "A weak gap often repeats the pattern, only says something is missing, is too broad, or cannot realistically be investigated.")}
+        </div>
+        <textarea id="a3-weakestGap" data-section="a3" data-key="weakestGap" aria-describedby="a3-weakestGap-help">${escapeHtml(value("a3.weakestGap"))}</textarea>
       </div>
       <div class="field">
-        <label for="a3-selectionReason">Reason for selection</label>
-        <textarea id="a3-selectionReason" data-section="a3" data-key="selectionReason">${escapeHtml(value("a3.selectionReason"))}</textarea>
-        <p class="hint">Explain why the strongest gap is more useful for your study than the weaker gap.</p>
+        <div class="field-label">
+          <label for="a3-selectionReason">Reason for selection</label>
+          ${helpControl("a3-selectionReason-help", "Reason for selection", "Explain why the strongest gap is more useful for your study than the weaker gap.")}
+        </div>
+        <textarea id="a3-selectionReason" data-section="a3" data-key="selectionReason" aria-describedby="a3-selectionReason-help">${escapeHtml(value("a3.selectionReason"))}</textarea>
       </div>
       <div class="field">
-        <label for="a3-finalGap">Final gap to carry forward</label>
-        <textarea id="a3-finalGap" data-section="a3" data-key="finalGap">${escapeHtml(value("a3.finalGap"))}</textarea>
-        <p class="hint">State what remains insufficiently understood and why that limitation exists.</p>
+        <div class="field-label">
+          <label for="a3-finalGap">Final gap to carry forward</label>
+          ${helpControl("a3-finalGap-help", "Final gap to carry forward", "State what remains insufficiently understood and why that limitation exists.")}
+        </div>
+        <textarea id="a3-finalGap" data-section="a3" data-key="finalGap" aria-describedby="a3-finalGap-help">${escapeHtml(value("a3.finalGap"))}</textarea>
       </div>
     </div>
     <section class="output-box">
@@ -490,17 +512,24 @@ function renderA4() {
   els.stageForm.innerHTML = `
     ${renderFields("a4", fieldSets.a4)}
     <section class="output-box">
-      <h3>Research Question Builder</h3>
-      <div class="generated-text">Start with purpose before wording. Ask: What specific information should this question answer? Then choose the purpose and use the suggested starters.</div>
+      <h3>From Central Question to Specific Questions</h3>
+      <div class="generated-text">Use the central research question as the anchor. Each specific research question should answer one clear part of that central question. Start with purpose before wording: ask what specific information the question should produce, then choose the purpose and use the suggested starters.</div>
     </section>
     <section class="table-wrap">
-      <h3>Specific Research Questions</h3>
+      <h3>Break the Central Question into Specific Research Questions</h3>
       <p class="hint">Each SRQ should be traceable to the central question, the A3 final gap, and the A1 core construct. Add ${SRQ_LIMITS.minimum}-${SRQ_LIMITS.maximum} questions as needed.</p>
+      <section class="output-box rq-anchor-box">
+        <h3>Central Research Question to Break Down</h3>
+        <div class="generated-text">${escapeHtml(state.a4.centralQuestion || "Write the central research question above first. Then use it as the anchor for the SRQs.")}</div>
+      </section>
       <div class="editable-list">
         ${state.a4.questions.map((question, index) => `
           <div class="question-row">
             <label>
-              <span class="hint">Question ${index + 1} purpose</span>
+              <span class="field-label">
+                <span>Question ${index + 1} purpose</span>
+                ${helpControl(`a4-question-${index}-purpose-help`, `Question ${index + 1} purpose`, questionStarterHint(index))}
+              </span>
               <select data-question-purpose="${index}">
                 <option value="">Choose the purpose of this question</option>
                 ${Object.entries(rqPurposeOptions).map(([key, option]) => `<option value="${key}" ${state.a4.questionPurposes[index] === key ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
@@ -508,7 +537,6 @@ function renderA4() {
             </label>
             <textarea data-array="a4.questions" data-index="${index}" aria-label="Research question ${index + 1}">${escapeHtml(question)}</textarea>
             <button class="row-remove" type="button" data-remove-question="${index}">X</button>
-            <p class="hint">${escapeHtml(questionStarterHint(index))}</p>
           </div>
         `).join("")}
       </div>
@@ -529,13 +557,15 @@ function renderMethodology() {
   els.stageForm.innerHTML = `
     ${renderFields("methodology", fieldSets.methodology)}
     <section class="field">
-      <label for="selectedDesign">Recommended or selected research design</label>
+      <div class="field-label">
+        <label for="selectedDesign">Recommended or selected research design</label>
+        ${helpControl("selectedDesign-help", "Recommended or selected research design", recommendMethodology())}
+      </div>
       <select id="selectedDesign" data-section="methodology" data-key="selectedDesign">
         ${["", "Descriptive Quantitative", "Correlational Quantitative", "Comparative Quantitative", "Quasi-experimental", "Phenomenology", "Case Study", "Narrative Inquiry", "Basic Qualitative Study", "Mixed Methods", "Action Research"].map((option) => `
           <option value="${option}" ${value("methodology.selectedDesign") === option ? "selected" : ""}>${option || "Select after reviewing recommendation"}</option>
         `).join("")}
       </select>
-      <p class="hint">${escapeHtml(recommendMethodology())}</p>
     </section>
     ${methodologyOutputFields()}
   `;
@@ -550,9 +580,11 @@ function methodologyOutputFields() {
   ];
   return `<div class="field-grid">${fields.map(([key, label]) => `
     <div class="field">
-      <label for="methodology-${key}">${label}</label>
-      <textarea id="methodology-${key}" data-section="methodology" data-key="${key}">${escapeHtml(value(`methodology.${key}`))}</textarea>
-      <p class="hint">${escapeHtml(fields.find((field) => field[0] === key)[2])} This can change after your adviser checks the design.</p>
+      <div class="field-label">
+        <label for="methodology-${key}">${label}</label>
+        ${helpControl(`methodology-${key}-help`, label, `${fields.find((field) => field[0] === key)[2]} This can change after your adviser checks the design.`)}
+      </div>
+      <textarea id="methodology-${key}" data-section="methodology" data-key="${key}" aria-describedby="methodology-${key}-help">${escapeHtml(value(`methodology.${key}`))}</textarea>
     </div>
   `).join("")}</div>`;
 }
@@ -621,9 +653,11 @@ function instrumentationRow(index) {
       </section>
       ${["instrument", "description", "purpose", "validation", "implementation"].map((key) => `
         <label>
-          <span class="hint">${escapeHtml(key[0].toUpperCase() + key.slice(1))}</span>
-          <textarea data-table="instrumentation" data-index="${index}" data-key="${key}">${escapeHtml(row[key] || "")}</textarea>
-          <span class="hint">${escapeHtml(instrumentationScaffold(key, purposeKey))}</span>
+          <span class="field-label">
+            <span>${escapeHtml(key[0].toUpperCase() + key.slice(1))}</span>
+            ${helpControl(`instrumentation-${index}-${key}-help`, key, instrumentationScaffold(key, purposeKey))}
+          </span>
+          <textarea data-table="instrumentation" data-index="${index}" data-key="${key}" aria-describedby="instrumentation-${index}-${key}-help">${escapeHtml(row[key] || "")}</textarea>
         </label>
       `).join("")}
       <button class="row-remove" type="button" data-remove-row="instrumentation:${index}">X</button>
@@ -659,9 +693,11 @@ function renderOutline() {
       <div class="generated-text">${escapeHtml(buildOutline())}</div>
     </section>
     <section class="field">
-      <label for="outline-notes">Instructor notes or local format reminders</label>
-      <textarea id="outline-notes" data-section="outline" data-key="notes">${escapeHtml(value("outline.notes"))}</textarea>
-      <p class="hint">Add school-specific headings, adviser instructions, citation style, or chapter labels here. This helps you adapt the outline without asking the app to write the manuscript.</p>
+      <div class="field-label">
+        <label for="outline-notes">Instructor notes or local format reminders</label>
+        ${helpControl("outline-notes-help", "Instructor notes or local format reminders", "Add school-specific headings, adviser instructions, citation style, or chapter labels here. This helps you adapt the outline without asking the app to write the manuscript.")}
+      </div>
+      <textarea id="outline-notes" data-section="outline" data-key="notes" aria-describedby="outline-notes-help">${escapeHtml(value("outline.notes"))}</textarea>
     </section>
   `;
 }
@@ -701,9 +737,11 @@ function tableRow(section, index, keys, labels) {
     <div class="table-row ${section}-row" style="--cols:${keys.length}">
       ${keys.map((key, keyIndex) => `
         <label>
-          <span class="hint">${labels[keyIndex]}</span>
-          <textarea data-table="${section}" data-index="${index}" data-key="${key}">${escapeHtml(row[key] || "")}</textarea>
-          <span class="hint">${escapeHtml(tableScaffolds[section]?.[key] || "Add a clear, study-specific detail.")}</span>
+          <span class="field-label">
+            <span>${labels[keyIndex]}</span>
+            ${helpControl(`${section}-${index}-${key}-help`, labels[keyIndex], tableScaffolds[section]?.[key] || "Add a clear, study-specific detail.")}
+          </span>
+          <textarea data-table="${section}" data-index="${index}" data-key="${key}" aria-describedby="${section}-${index}-${key}-help">${escapeHtml(row[key] || "")}</textarea>
         </label>
       `).join("")}
       <button class="row-remove" type="button" data-remove-row="${section}:${index}">X</button>
@@ -738,11 +776,20 @@ function buildProblem() {
 }
 
 function recommendMethodology() {
-  const text = `${state.a4.questionType || ""} ${state.methodology.rqTypes || ""} ${state.methodology.purpose || ""}`.toLowerCase();
+  const purposes = state.a4.questionPurposes
+    .filter((purpose) => purpose && rqPurposeOptions[purpose])
+    .map((purpose) => rqPurposeOptions[purpose].label)
+    .join(" ");
+  const text = `${state.a4.questionType || ""} ${state.methodology.rqTypes || ""} ${state.methodology.purpose || ""} ${purposes}`.toLowerCase();
+  if (text.includes("develop") || text.includes("model") || text.includes("framework") || text.includes("theory")) return "Recommendation: Model/framework development may fit if the design includes qualitative analysis, mixed methods integration, expert validation, Delphi review, grounded theory, or design/development research.";
   if (text.includes("relat") || text.includes("correl")) return "Recommendation: Correlational quantitative design, because the questions examine relationships between constructs.";
   if (text.includes("compar") || text.includes("difference")) return "Recommendation: Comparative quantitative design, because the questions compare groups or categories.";
+  if (text.includes("predict")) return "Recommendation: Predictive quantitative design or regression-based analysis may fit because the questions examine predictors and outcomes.";
+  if (text.includes("evaluat")) return "Recommendation: Evaluation research, action research, quasi-experimental design, or mixed methods may fit because the questions examine effectiveness, implementation, or impact.";
+  if (text.includes("explain")) return "Recommendation: Explanatory qualitative, explanatory sequential mixed methods, or causal/comparative design may fit depending on the evidence needed.";
   if (text.includes("effect") || text.includes("improv") || text.includes("experiment")) return "Recommendation: Quasi-experimental design may fit if an intervention is tested with measurable outcomes.";
   if (text.includes("experience") || text.includes("explor") || text.includes("describe their")) return "Recommendation: Qualitative design such as phenomenology, case study, or basic qualitative study may fit.";
+  if (text.includes("describe") || text.includes("level") || text.includes("extent")) return "Recommendation: Descriptive quantitative or qualitative descriptive design may fit, depending on whether the question needs numeric levels or descriptive meanings.";
   if (text.includes("action") || text.includes("classroom intervention")) return "Recommendation: Action research may fit if the goal is to improve practice in a specific classroom.";
   if (text.includes("mixed")) return "Recommendation: Mixed methods may fit if both numeric trends and participant explanations are needed.";
   return "Recommendation: Add question type and data needs to receive a methodology suggestion. Do not force the method; let the research questions guide it.";
@@ -899,6 +946,7 @@ function checkA4() {
       results.push({ level: "yellow", text: `Question ${index + 1} may read like a yes/no opinion question.` });
     }
   });
+  results.push(...centralQuestionAlignmentItems());
   results.push(...questionStructureWarnings(questions));
   return results;
 }
@@ -960,6 +1008,189 @@ function questionOverlap(first, second) {
   return shared / Math.min(firstTokens.size, secondTokens.size);
 }
 
+function questionPurposeRows() {
+  return state.a4.questions.map((question, index) => ({
+    index,
+    number: index + 1,
+    question: String(question || "").trim(),
+    purposeKey: state.a4.questionPurposes[index] || "",
+    purposeLabel: rqPurposeOptions[state.a4.questionPurposes[index]]?.label || ""
+  })).filter((row) => row.question);
+}
+
+function stemTokens(text) {
+  return normalizeQuestion(text)
+    .split(" ")
+    .filter((token) => token.length > 3 && !["question", "research", "study", "junior", "senior", "school", "teacher", "student", "participants", "respondents"].includes(token));
+}
+
+function centralQuestionAlignmentItems() {
+  const rows = questionPurposeRows();
+  const central = state.a4.centralQuestion || "";
+  const centralTokens = new Set(stemTokens(central));
+  const problemTokens = new Set(stemTokens(`${state.a4.literatureProblem || ""} ${state.a3.finalGap || ""} ${state.a4.rqConstructs || ""}`));
+  const allSrqTokens = new Set(stemTokens(rows.map((row) => row.question).join(" ")));
+  const items = [
+    flag(Boolean(central), "Central question is available for alignment checking.", "Write the central research question so the app can check whether the SRQs unpack it."),
+    flag(rows.length > 0, "Specific research questions are available for alignment checking.", "Add specific research questions so the app can check alignment with the central question.")
+  ];
+  if (!central || !rows.length) return items;
+
+  rows.forEach((row) => {
+    const tokens = stemTokens(row.question);
+    const missing = tokens.filter((token) => !centralTokens.has(token) && !problemTokens.has(token));
+    if (tokens.length && missing.length / tokens.length > 0.45) {
+      items.push({
+        level: "yellow",
+        text: `SRQ ${row.number} may introduce ideas not visible in the central question. Revise the central question to include this idea, or remove the SRQ if it is outside the study.`
+      });
+    } else {
+      items.push({ level: "green", text: `SRQ ${row.number} appears traceable to the central question or literature-based problem.` });
+    }
+  });
+
+  const uncoveredCentral = [...centralTokens].filter((token) => !allSrqTokens.has(token) && !problemTokens.has(token));
+  if (uncoveredCentral.length >= 2) {
+    items.push({
+      level: "yellow",
+      text: "Some central-question ideas may not be unpacked by the SRQs. Check whether each major idea in the central question has a matching specific question."
+    });
+  }
+  return items;
+}
+
+function designFamily(text) {
+  const valueText = String(text || "").toLowerCase();
+  const families = new Set();
+  if (/mixed/.test(valueText)) families.add("mixed");
+  if (/correl|relation|association/.test(valueText)) families.add("relationship");
+  if (/compar|difference|t-test|anova|mann|kruskal/.test(valueText)) families.add("compare");
+  if (/predict|regression/.test(valueText)) families.add("predict");
+  if (/phenomen|case study|narrative|qualitative|interview|thematic|content analysis|grounded/.test(valueText)) families.add("qualitative");
+  if (/descriptive|survey|frequency|percentage|mean|standard deviation|level|extent/.test(valueText)) families.add("describe");
+  if (/quasi|experiment|intervention|effect/.test(valueText)) families.add("evaluate");
+  if (/action research|evaluation|impact|implementation/.test(valueText)) families.add("evaluate");
+  if (/develop|development|model|framework|theory|delphi|validation/.test(valueText)) families.add("develop");
+  return families;
+}
+
+function designFitsPurpose(purposeKey, designText) {
+  const family = designFamily(designText);
+  if (!purposeKey) return false;
+  if (family.has("mixed")) return true;
+  const allowed = {
+    describe: ["describe", "qualitative"],
+    compare: ["compare"],
+    relationship: ["relationship"],
+    predict: ["predict", "relationship"],
+    exploreExperience: ["qualitative"],
+    explain: ["qualitative", "compare", "relationship", "evaluate"],
+    evaluate: ["evaluate", "compare"],
+    develop: ["develop", "qualitative"]
+  };
+  return (allowed[purposeKey] || []).some((item) => family.has(item));
+}
+
+function purposeDesignAlignmentItems() {
+  const rows = questionPurposeRows();
+  const design = state.methodology.selectedDesign || "";
+  const items = [
+    flag(Boolean(design), "A selected research design is available for question-design checking.", "Select a research design so the app can check whether it fits the SRQ purposes.")
+  ];
+  rows.forEach((row) => {
+    if (!row.purposeKey) {
+      items.push({ level: "yellow", text: `SRQ ${row.number} has no selected purpose. Choose the purpose so the design check can work.` });
+      return;
+    }
+    if (!design) return;
+    if (designFitsPurpose(row.purposeKey, design)) {
+      items.push({ level: "green", text: `SRQ ${row.number} purpose fits the selected design.` });
+    } else {
+      items.push({
+        level: "yellow",
+        text: `SRQ ${row.number} is marked "${row.purposeLabel}", but the selected design is "${design}". Check whether the design should change, or revise the question purpose.`
+      });
+    }
+  });
+  return items;
+}
+
+function analysisFitsPurpose(purposeKey, analysisText) {
+  const family = designFamily(analysisText);
+  const text = String(analysisText || "").toLowerCase();
+  if (!purposeKey || !text) return false;
+  if (/mixed|integration|triangulat/.test(text)) return true;
+  const allowed = {
+    describe: ["describe", "qualitative"],
+    compare: ["compare"],
+    relationship: ["relationship"],
+    predict: ["predict"],
+    exploreExperience: ["qualitative"],
+    explain: ["qualitative", "relationship", "compare"],
+    evaluate: ["evaluate", "compare", "describe"],
+    develop: ["develop", "qualitative"]
+  };
+  return (allowed[purposeKey] || []).some((item) => family.has(item));
+}
+
+function purposeAnalysisAlignmentItems() {
+  const rows = questionPurposeRows();
+  const analysis = state.methodology.analysis || "";
+  const items = [
+    flag(Boolean(analysis), "Data analysis plan is available for question-analysis checking.", "Write the data analysis plan so the app can check whether it fits the SRQ purposes.")
+  ];
+  if (!analysis) return items;
+  rows.forEach((row) => {
+    if (!row.purposeKey) return;
+    if (analysisFitsPurpose(row.purposeKey, analysis)) {
+      items.push({ level: "green", text: `SRQ ${row.number} purpose appears supported by the data analysis plan.` });
+    } else {
+      items.push({
+        level: "yellow",
+        text: `SRQ ${row.number} is marked "${row.purposeLabel}", but the data analysis plan may not show the needed analysis. Add the matching analysis or revise the SRQ purpose.`
+      });
+    }
+  });
+  return items;
+}
+
+function instrumentFitsPurpose(row, purposeKey) {
+  const text = `${row.instrument || ""} ${row.description || ""} ${row.purpose || ""} ${row.implementation || ""}`.toLowerCase();
+  if (!purposeKey || !text.trim()) return false;
+  if (purposeKey === "describe") return /survey|questionnaire|test|scale|checklist|rubric|interview|observation|document/.test(text);
+  if (purposeKey === "compare" || purposeKey === "relationship" || purposeKey === "predict") return /survey|questionnaire|test|scale|score|variable|measure|rubric|checklist/.test(text);
+  if (purposeKey === "exploreExperience" || purposeKey === "explain") return /interview|focus group|observation|journal|open-ended|document|case/.test(text);
+  if (purposeKey === "evaluate") return /survey|interview|observation|rubric|checklist|test|pre|post|implementation|outcome/.test(text);
+  if (purposeKey === "develop") return /interview|focus group|expert|delphi|validation|document|model|framework|thematic|rubric/.test(text);
+  return true;
+}
+
+function purposeInstrumentationAlignmentItems() {
+  syncInstrumentationRows();
+  const rows = questionPurposeRows();
+  const items = [];
+  rows.forEach((questionRow, index) => {
+    const instrumentRow = normalizeInstrumentRow(state.instrumentation.rows[index] || emptyRowFor("instrumentation"));
+    if (!instrumentRow.instrument) {
+      items.push({ level: "yellow", text: `SRQ ${questionRow.number} needs an instrument or data source.` });
+      return;
+    }
+    if (!questionRow.purposeKey) {
+      items.push({ level: "yellow", text: `SRQ ${questionRow.number} has no selected purpose, so the app cannot check its instrument fit.` });
+      return;
+    }
+    if (instrumentFitsPurpose(instrumentRow, questionRow.purposeKey)) {
+      items.push({ level: "green", text: `SRQ ${questionRow.number} instrument appears suitable for its purpose.` });
+    } else {
+      items.push({
+        level: "yellow",
+        text: `SRQ ${questionRow.number} is marked "${questionRow.purposeLabel}", but the instrument plan may not fit that purpose. Revise the instrument, data source, or SRQ purpose.`
+      });
+    }
+  });
+  return items;
+}
+
 function checkMethodology() {
   const rec = recommendMethodology().toLowerCase();
   const design = (state.methodology.selectedDesign || "").toLowerCase();
@@ -968,7 +1199,9 @@ function checkMethodology() {
     flag(!design || rec.includes(design.split(" ")[0]) || rec.includes("add question"), "Methodology appears aligned with the question type.", "Review whether the method matches the research questions."),
     flag(Boolean(state.methodology.participants), "Participants are described.", "Describe who will participate."),
     flag(Boolean(state.methodology.collection), "Data collection is planned.", "Add how data will be collected."),
-    flag(Boolean(state.methodology.analysis), "Data analysis is planned.", "Add how the data will be analyzed.")
+    flag(Boolean(state.methodology.analysis), "Data analysis is planned.", "Add how the data will be analyzed."),
+    ...purposeDesignAlignmentItems(),
+    ...purposeAnalysisAlignmentItems()
   ];
 }
 
@@ -992,6 +1225,7 @@ function checkInstrumentation() {
     if (!row.validation) results.push({ level: "yellow", text: `Row ${index + 1}: validation or reliability/trustworthiness is missing.` });
     if (!row.implementation) results.push({ level: "yellow", text: `Row ${index + 1}: instrument implementation is missing.` });
   });
+  results.push(...purposeInstrumentationAlignmentItems());
   return results;
 }
 
@@ -1020,21 +1254,21 @@ function feedbackHtml(item) {
 }
 
 function readinessReport() {
-  const checks = [
-    ["Core Construct to Literature Patterns", Boolean(state.a1.coreConstruct || state.a1.rrlMajorityTest) && state.a2.patterns.some((row) => row.notice && row.authors)],
-    ["Patterns to Gap", state.a2.patterns.some((row) => row.notice) && Boolean(state.a3.finalGap)],
-    ["Gap to Problem", Boolean(state.a3.finalGap) && Boolean(state.a4.literatureProblem)],
-    ["Problem to Questions", Boolean(state.a4.literatureProblem) && Boolean(state.a4.centralQuestion) && state.a4.questions.some(Boolean)],
-    ["Questions to Methodology", state.a4.questions.some(Boolean) && Boolean(state.methodology.selectedDesign)],
-    ["Methodology to Instruments", Boolean(state.methodology.selectedDesign) && state.instrumentation.rows.some((row) => row.instrument)],
-    ["Instruments to Analysis", state.instrumentation.rows.some((row) => row.validation) && Boolean(state.methodology.analysis)],
-    ["Ethics to Participants", Boolean(state.methodology.participants) && Object.values(state.ethics.checks).some(Boolean)]
+  const baseItems = [
+    flag(Boolean(state.a1.coreConstruct || state.a1.rrlMajorityTest) && state.a2.patterns.some((row) => row.notice && row.authors), "Core Construct to Literature Patterns: aligned.", "Core Construct to Literature Patterns: add a core construct and literature patterns with supporting authors."),
+    flag(state.a2.patterns.some((row) => row.notice) && Boolean(state.a3.finalGap), "Patterns to Gap: aligned.", "Patterns to Gap: connect A2 patterns to a final A3 gap."),
+    flag(Boolean(state.a3.finalGap) && Boolean(state.a4.literatureProblem), "Gap to Problem: aligned.", "Gap to Problem: translate the A3 final gap into a literature-based problem."),
+    flag(Boolean(state.a4.literatureProblem) && Boolean(state.a4.centralQuestion) && state.a4.questions.some(Boolean), "Problem to Questions: aligned.", "Problem to Questions: add a literature-based problem, central question, and SRQs."),
+    flag(Boolean(state.methodology.participants) && Object.values(state.ethics.checks).some(Boolean), "Ethics to Participants: aligned.", "Ethics to Participants: describe participants and select applicable ethics safeguards.")
   ];
-  const items = checks.map(([name, ok]) => ({
-    level: ok ? "green" : "red",
-    text: ok ? `${name}: aligned.` : `${name}: major alignment issue or missing detail.`
-  }));
-  const score = Math.round((checks.filter(([, ok]) => ok).length / checks.length) * 100);
+  const items = [
+    ...baseItems,
+    ...centralQuestionAlignmentItems(),
+    ...purposeDesignAlignmentItems(),
+    ...purposeAnalysisAlignmentItems(),
+    ...purposeInstrumentationAlignmentItems()
+  ].map((item) => ({ ...item, level: item.level === "yellow" ? "red" : item.level }));
+  const score = Math.round((items.filter((item) => item.level === "green").length / Math.max(items.length, 1)) * 100);
   const label = score >= 80 ? "Ready" : score >= 50 ? "Needs Revision" : "Major Alignment Issue";
   return { score, label, items };
 }
