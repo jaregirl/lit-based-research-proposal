@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lit-Based Proposal Builder</title>
+    <title>Lit-Based Proposal Builder Upload Version</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles-upload.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -53,6 +53,7 @@
           </div>
           <div class="top-actions">
             <button class="ghost" id="studentDetailsBtn" type="button">Student Details</button>
+            <button class="ghost" id="uploadFormsBtn" type="button">Upload A1 Form</button>
             <button class="ghost" id="importBtn" type="button">Restore Backup</button>
             <button class="ghost" id="exportBtn" type="button">Download Backup</button>
             <button class="danger" id="resetBtn" type="button">Reset</button>
@@ -135,7 +136,24 @@
       </section>
     </dialog>
 
+    <dialog id="uploadDialog">
+      <div class="dialog-header">
+        <h2 id="uploadDialogTitle">Upload Accomplished Form</h2>
+        <button class="ghost" id="closeUploadBtn" type="button">Close</button>
+      </div>
+      <section class="upload-panel">
+        <p class="hint" id="uploadDialogHint">Upload the accomplished form for the current A-stage as DOCX, PDF, or text. The app will extract text and prepare suggested entries. Please review before applying.</p>
+        <input id="formUploadFile" type="file" accept=".docx,.pdf,.txt" multiple />
+        <div id="uploadFeedback" class="feedback">No files selected yet.</div>
+      </section>
+      <div class="dialog-actions">
+        <button class="ghost" id="clearUploadBtn" type="button">Clear</button>
+        <button class="primary" id="applyUploadBtn" type="button">Apply Extracted Entries</button>
+      </div>
+    </dialog>
+
     <input id="importFile" type="file" accept="application/json" hidden />
-    <script src="app.js"></script>
+    <script src="jszip.min.js"></script>
+    <script src="app-upload.js"></script>
   </body>
 </html>
