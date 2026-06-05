@@ -1,4 +1,43 @@
 const STORAGE_KEY = "proposalBuilderA4DraftUploadVersion";
+const SRQ_LIMITS = {
+  minimum: 2,
+  preferredMaximum: 5,
+  maximum: 7
+};
+const rqPurposeOptions = {
+  describe: {
+    label: "Describe a level, condition, perception, practice, or experience",
+    starters: "What is the level of...? What are the perceptions of...? To what extent...?"
+  },
+  compare: {
+    label: "Compare groups, conditions, or situations",
+    starters: "Is there a significant difference in...? How do groups differ in...?"
+  },
+  relationship: {
+    label: "Determine a relationship between variables",
+    starters: "Is there a significant relationship between...? What is the association between...?"
+  },
+  predict: {
+    label: "Predict an outcome from one or more factors",
+    starters: "Which factors predict...? To what extent do... predict...?"
+  },
+  exploreExperience: {
+    label: "Explore experiences, meanings, perceptions, or processes",
+    starters: "How do participants describe...? What are the experiences of...? What themes emerge regarding...?"
+  },
+  explain: {
+    label: "Explain how or why something happens",
+    starters: "How and why does...? What factors influence...? How does... occur?"
+  },
+  evaluate: {
+    label: "Evaluate a program, strategy, intervention, or practice",
+    starters: "How effective is...? How do participants evaluate...? What is the impact of...?"
+  },
+  develop: {
+    label: "Develop a model, framework, or theory",
+    starters: "What framework can be developed...? What model explains...? What theory may be generated from...?"
+  }
+};
 const uploadStageIds = ["a1", "a2", "a3"];
 let uploadTargetStage = "a1";
 let pendingUploadByStage = { a1: null, a2: null, a3: null };
@@ -50,7 +89,11 @@ const fieldSets = {
     ["course", "Course", "Enter the course or subject where this app output will be submitted."],
     ["section", "Section", "Add your section, block, program, or class schedule if required."],
     ["submissionDate", "Date", "Use the date of submission or the date your instructor requires."],
-    ["confidence", "Confidence Rating", "Rate your current confidence and briefly explain why. Example: 3/5 because my questions are clear but my instruments need refinement."]
+    ["initialReadiness", "Initial Readiness Reflection", "Before starting A1, briefly state how ready you think your proposal idea is. Example: 2/5 because I have a topic but not yet a clear literature gap."]
+  ],
+  finalSubmission: [
+    ["confidence", "Final Readiness Reflection", "After completing the workflow, briefly state how ready you think the proposal is and what still needs refinement. Example: 4/5 because the gap and questions are clear but the instruments need revision."],
+    ["readinessChange", "What Changed and Why?", "Compare your initial and final readiness. Explain what became clearer, what changed, and what still needs work."]
   ]
 };
 
@@ -71,16 +114,17 @@ const tableScaffolds = {
   },
   instrumentation: {
     rq: "Copy or summarize one research question. Each question should have a data source.",
-    data: "Name the evidence needed: scores, responses, observations, interview themes, documents.",
     instrument: "Choose a tool: survey, test, interview guide, focus group guide, observation checklist, rubric, journal, or document guide.",
-    source: "Identify who or what provides the data: learners, teachers, records, outputs, or observations.",
-    sample: "Draft one sample item, prompt, indicator, or observation point.",
-    validation: "Explain expert validation, pilot testing, reliability, inter-rater checking, or trustworthiness strategy."
+    description: "Describe what the instrument is and what parts, scales, prompts, indicators, or sections it contains.",
+    purpose: "Explain what the instrument is meant to measure, observe, describe, compare, or explore.",
+    validation: "Explain expert validation, pilot testing, reliability, inter-rater checking, or trustworthiness strategy.",
+    implementation: "Explain how, when, where, and by whom the instrument will be administered or used."
   }
 };
 
 const defaultData = {
   currentStage: "details",
+  startedAt: "",
   a1: {},
   a2: {
     constructs: [
@@ -112,7 +156,8 @@ const defaultData = {
     finalGap: ""
   },
   a4: {
-    questions: ["", "", ""]
+    questions: ["", "", ""],
+    questionPurposes: ["", "", ""]
   },
   methodology: {
     selectedDesign: "",
@@ -127,7 +172,7 @@ const defaultData = {
   },
   instrumentation: {
     rows: [
-      { rq: "", data: "", instrument: "", source: "", sample: "", validation: "" }
+      { rq: "", instrument: "", description: "", purpose: "", validation: "", implementation: "" }
     ]
   },
   outline: {
@@ -187,6 +232,7 @@ function loadState() {
 
 function normalizeState(nextState) {
   const normalized = { ...clone(defaultData), ...nextState };
+  if (!normalized.startedAt) normalized.startedAt = new Date().toISOString();
   normalized.a1 = { ...clone(defaultData.a1), ...(nextState.a1 || {}) };
   normalized.a2 = { ...clone(defaultData.a2), ...(nextState.a2 || {}) };
   normalized.a3 = { ...clone(defaultData.a3), ...(nextState.a3 || {}) };
@@ -199,8 +245,22 @@ function normalizeState(nextState) {
   if (!Array.isArray(normalized.a2.patterns)) normalized.a2.patterns = clone(defaultData.a2.patterns);
   if (!Array.isArray(normalized.a3.gaps)) normalized.a3.gaps = clone(defaultData.a3.gaps);
   if (!Array.isArray(normalized.a4.questions)) normalized.a4.questions = ["", "", ""];
+  if (!Array.isArray(normalized.a4.questionPurposes)) normalized.a4.questionPurposes = [];
+  normalized.a4.questionPurposes = normalized.a4.questions.map((_, index) => normalized.a4.questionPurposes[index] || "");
   if (!Array.isArray(normalized.instrumentation.rows)) normalized.instrumentation.rows = clone(defaultData.instrumentation.rows);
+  normalized.instrumentation.rows = normalized.instrumentation.rows.map(normalizeInstrumentRow);
   return normalized;
+}
+
+function normalizeInstrumentRow(row = {}) {
+  return {
+    rq: row.rq || "",
+    instrument: row.instrument || "",
+    description: row.description || row.data || "",
+    purpose: row.purpose || row.sample || "",
+    validation: row.validation || "",
+    implementation: row.implementation || row.source || ""
+  };
 }
 
 function saveState() {
@@ -231,6 +291,33 @@ function escapeHtml(text = "") {
     .replaceAll("'", "&#039;");
 }
 
+function formatTimestamp(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+  return date.toLocaleString([], {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function formatDuration(startValue, endDate = new Date()) {
+  const startDate = new Date(startValue);
+  if (Number.isNaN(startDate.getTime())) return "Not recorded";
+  const totalMinutes = Math.max(0, Math.round((endDate - startDate) / 60000));
+  if (totalMinutes < 1) return "Less than 1 minute";
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (days) parts.push(`${days} day${days === 1 ? "" : "s"}`);
+  if (hours) parts.push(`${hours} hour${hours === 1 ? "" : "s"}`);
+  if (minutes) parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`);
+  return parts.join(", ");
+}
+
 function sentence(parts) {
   return parts.filter((part) => String(part || "").trim()).join(" ");
 }
@@ -239,10 +326,12 @@ function renderNav() {
   els.stageNav.innerHTML = stages.map((stage) => {
     const done = stageCompletion(stage.id) > 0.55 ? "done" : "";
     const active = state.currentStage === stage.id ? "active" : "";
+    const index = stages.findIndex((item) => item.id === stage.id);
+    const isNext = index === currentIndex() + 1 ? "next-step" : "";
     return `
-      <button class="stage-tab ${active}" type="button" data-stage="${stage.id}">
+      <button class="stage-tab ${active} ${isNext}" type="button" data-stage="${stage.id}" title="Step ${index + 1}: ${stage.title}">
         <span class="stage-code">${stage.code}</span>
-        <span class="stage-label">${stage.title}</span>
+        <span class="stage-label"><small>Step ${index + 1}${isNext ? " - Next" : ""}</small>${stage.title}</span>
         <span class="status-dot ${done}" aria-hidden="true"></span>
       </button>
     `;
@@ -401,28 +490,39 @@ function renderA4() {
   els.stageForm.innerHTML = `
     ${renderFields("a4", fieldSets.a4)}
     <section class="output-box">
-      <h3>Research Question Templates</h3>
-      <div class="generated-text">Descriptive: What is the level/status/profile of _____?
-Comparative: Is there a significant difference in _____ according to _____?
-Correlational: Is there a significant relationship between _____ and _____?
-Qualitative: How do participants describe their experiences regarding _____?
-Evaluation: How effective is _____ in improving _____?</div>
+      <h3>Research Question Builder</h3>
+      <div class="generated-text">Start with purpose before wording. Ask: What specific information should this question answer? Then choose the purpose and use the suggested starters.</div>
     </section>
     <section class="table-wrap">
       <h3>Specific Research Questions</h3>
-      <p class="hint">Each SRQ should be traceable to the central question, the A3 final gap, and the A1 core construct. The questions will later guide methodology.</p>
+      <p class="hint">Each SRQ should be traceable to the central question, the A3 final gap, and the A1 core construct. Add ${SRQ_LIMITS.minimum}-${SRQ_LIMITS.maximum} questions as needed.</p>
       <div class="editable-list">
         ${state.a4.questions.map((question, index) => `
-          <div class="list-row">
+          <div class="question-row">
+            <label>
+              <span class="hint">Question ${index + 1} purpose</span>
+              <select data-question-purpose="${index}">
+                <option value="">Choose the purpose of this question</option>
+                ${Object.entries(rqPurposeOptions).map(([key, option]) => `<option value="${key}" ${state.a4.questionPurposes[index] === key ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+              </select>
+            </label>
             <textarea data-array="a4.questions" data-index="${index}" aria-label="Research question ${index + 1}">${escapeHtml(question)}</textarea>
             <button class="row-remove" type="button" data-remove-question="${index}">X</button>
-            <p class="hint">Question ${index + 1}: Start with What, To what extent, Is there a significant difference, Is there a significant relationship, or How do participants describe.</p>
+            <p class="hint">${escapeHtml(questionStarterHint(index))}</p>
           </div>
         `).join("")}
       </div>
       <button type="button" data-add-question>Add Question</button>
     </section>
   `;
+}
+
+function questionStarterHint(index) {
+  const purpose = state.a4.questionPurposes[index];
+  if (!purpose || !rqPurposeOptions[purpose]) {
+    return "Choose a purpose first. The app will suggest question starters based on what the question is trying to find out.";
+  }
+  return `Suggested starters: ${rqPurposeOptions[purpose].starters}`;
 }
 
 function renderMethodology() {
@@ -476,19 +576,80 @@ function renderEthics() {
 }
 
 function renderInstrumentation() {
-  const rows = state.instrumentation.rows.length ? state.instrumentation.rows : [{ rq: "", data: "", instrument: "", source: "", sample: "", validation: "" }];
-  state.instrumentation.rows = rows;
+  syncInstrumentationRows();
+  const rows = state.instrumentation.rows;
   els.stageForm.innerHTML = `
     <section class="table-wrap">
       <h3>Instrumentation Alignment Table</h3>
+      <p class="hint">Each non-empty research question from A4 gets one instrumentation row. The question purpose from A4 is shown so the instrument plan matches what the question is trying to find out.</p>
       <div class="table-scroll">
         <div class="editable-list">
-          ${rows.map((row, index) => tableRow("instrumentation", index, ["rq", "data", "instrument", "source", "sample", "validation"], ["Research Question", "Data Needed", "Instrument", "Source", "Sample Item", "Validation"])).join("")}
+          ${rows.map((row, index) => instrumentationRow(index)).join("")}
         </div>
       </div>
       <button type="button" data-add-row="instrumentation">Add Instrument Row</button>
     </section>
   `;
+}
+
+function syncInstrumentationRows() {
+  const existingRows = state.instrumentation.rows.map(normalizeInstrumentRow);
+  const questions = state.a4.questions.filter((question) => question.trim());
+  const nextRows = questions.map((question, index) => {
+    const existing = existingRows[index] || emptyRowFor("instrumentation");
+    return { ...existing, rq: question };
+  });
+  const extraRows = existingRows.slice(questions.length).filter((row) =>
+    row.instrument || row.description || row.purpose || row.validation || row.implementation
+  );
+  state.instrumentation.rows = nextRows.concat(extraRows);
+}
+
+function instrumentationRow(index) {
+  const row = state.instrumentation.rows[index];
+  const purposeKey = state.a4.questionPurposes[index] || "";
+  const purpose = rqPurposeOptions[purposeKey];
+  const purposeHint = purpose
+    ? `Question purpose from A4: ${purpose.label}. Suggested question starters: ${purpose.starters}`
+    : "No A4 question purpose selected yet. Return to A4 and choose the purpose of this question.";
+  return `
+    <div class="table-row instrumentation-row" style="--cols:6">
+      <section class="output-box">
+        <h3>Research Question ${index + 1}</h3>
+        <div class="generated-text">${escapeHtml(row.rq || "No research question has been entered yet.")}</div>
+        <p class="hint">${escapeHtml(purposeHint)}</p>
+      </section>
+      ${["instrument", "description", "purpose", "validation", "implementation"].map((key) => `
+        <label>
+          <span class="hint">${escapeHtml(key[0].toUpperCase() + key.slice(1))}</span>
+          <textarea data-table="instrumentation" data-index="${index}" data-key="${key}">${escapeHtml(row[key] || "")}</textarea>
+          <span class="hint">${escapeHtml(instrumentationScaffold(key, purposeKey))}</span>
+        </label>
+      `).join("")}
+      <button class="row-remove" type="button" data-remove-row="instrumentation:${index}">X</button>
+    </div>
+  `;
+}
+
+function instrumentationScaffold(key, purposeKey) {
+  const purposeSpecific = {
+    describe: "Name the level, condition, perception, practice, or experience this instrument will describe.",
+    compare: "Name the comparable data the instrument will gather from each group, condition, or situation.",
+    relationship: "Name the variables or constructs the instrument will measure so their relationship can be examined.",
+    predict: "Name the predictor and outcome data the instrument will gather.",
+    exploreExperience: "Name the experiences, meanings, perceptions, or processes the instrument will explore.",
+    explain: "Name the evidence the instrument will gather to explain how or why the phenomenon occurs.",
+    evaluate: "Name the evidence the instrument will gather about effectiveness, implementation, or impact.",
+    develop: "Name the evidence the instrument will gather to support model, framework, or theory development."
+  };
+  const base = {
+    instrument: "Choose a tool: survey, test, interview guide, focus group guide, observation checklist, rubric, journal, or document guide.",
+    description: "Describe the instrument parts, scales, prompts, indicators, sections, and sample item or example indicator.",
+    purpose: purposeSpecific[purposeKey] || "Explain what data this instrument needs to collect for the research question.",
+    validation: "Explain expert validation, pilot testing, reliability, inter-rater checking, or trustworthiness strategy.",
+    implementation: "Explain the source of data and how, when, where, and by whom the instrument will be administered or used."
+  };
+  return base[key] || "Add a clear, study-specific detail.";
 }
 
 function renderOutline() {
@@ -521,18 +682,23 @@ function renderReadiness() {
 
 function renderSubmission() {
   els.stageForm.innerHTML = `
-    ${renderFields("submission", fieldSets.submission)}
     <section class="output-box">
       <h3>Submission Tools</h3>
-      <div class="generated-text">Preview the A4 academic submission, then use Generate PDF or Print. The tool creates structured drafts and alignment reports, not a complete proposal manuscript.</div>
+      <div class="generated-text">Complete the readiness reflection after reviewing the proposal readiness report. Then preview the submission and use Generate PDF or Print.</div>
     </section>
+    <section class="output-box">
+      <h3>Initial Readiness Reflection</h3>
+      <div class="generated-text">${escapeHtml(value("submission.initialReadiness") || "No initial readiness reflection has been entered yet. Return to Info - Student Details to add it.")}</div>
+      <p class="hint">This is read-only here. Edit it in Info - Student Details if correction is needed.</p>
+    </section>
+    ${renderFields("submission", fieldSets.finalSubmission)}
   `;
 }
 
 function tableRow(section, index, keys, labels) {
   const row = getTableRows(section)[index];
   return `
-    <div class="table-row" style="--cols:${keys.length}">
+    <div class="table-row ${section}-row" style="--cols:${keys.length}">
       ${keys.map((key, keyIndex) => `
         <label>
           <span class="hint">${labels[keyIndex]}</span>
@@ -554,7 +720,7 @@ function getTableRows(section) {
 function emptyRowFor(section) {
   if (section === "a2Patterns") return { type: "", notice: "", authors: "", years: "" };
   if (section === "a3Gaps") return { type: "", show: "", emphasized: "", lessVisible: "", limits: "", gap: "" };
-  return { rq: "", data: "", instrument: "", source: "", sample: "", validation: "" };
+  return { rq: "", instrument: "", description: "", purpose: "", validation: "", implementation: "" };
 }
 
 function buildTopic() {
@@ -599,32 +765,53 @@ function ethicsRisk() {
 }
 
 function buildOutline() {
+  const core = state.a1.coreConstruct || state.a1.rrlMajorityTest || "[A1 core construct]";
+  const gap = state.a3.finalGap || "[A3 final gap]";
+  const problem = state.a4.literatureProblem || "[A4 literature-based problem]";
+  const crq = state.a4.centralQuestion || "[A4 central research question]";
+  const srqs = state.a4.questions.filter(Boolean).map((question, index) => `  ${index + 1}. ${question}`).join("\n") || "  [Add specific research questions from A4]";
+  const patterns = state.a2.patterns.filter((row) => row.notice).map((row) => `  - ${row.type}: ${row.notice}`).join("\n") || "  [Add A2 literature patterns]";
+
   return `Chapter 1: The Problem and Its Scope
-- Background
-- Statement of the Problem
-- Research Questions
+Introduction
+- Rationale
+  Explain why the study is worth doing by connecting the concern to the literature gap: ${gap}
+- Background of the Study
+  Anchor this section on the core construct: ${core}
+  Use these literature patterns as the basis:
+${patterns}
+
+Statement of the Problem
+- General Statement
+  Carry forward this literature-based problem: ${problem}
+- Specific Statements in Question Form
+  Central research question: ${crq}
+${srqs}
 - Hypothesis/Assumptions
+  Add hypotheses for quantitative testing or assumptions for qualitative/descriptive work when required.
 - Significance
-- Scope and Delimitation
-- Definition of Terms
+  Explain who benefits from understanding the gap: ${gap}
 
-Chapter 2: Review of Related Literature
-- Key Constructs
-- Related Literature
-- Related Studies
-- Research Gap
-- Conceptual Framework
-
-Chapter 3: Methodology
+Methodology
 - Design
+  Current selected design: ${state.methodology.selectedDesign || "[Select methodology]"}
+- Scope and Limitations/Delimitations
+  Identify participant boundaries, locale boundaries, construct boundaries, and what the study will not cover.
 - Participants
-- Sampling
+  ${state.methodology.participants || "[Describe participants]"}
+  Sampling: ${state.methodology.sampling || "[Describe sampling]"}
 - Locale
+  ${state.methodology.locale || "[Describe locale]"}
 - Instrumentation
-- Validation
-- Data Collection
-- Data Analysis
-- Ethical Considerations
+  Describe each instrument, its purpose, validation, and how it will be implemented.
+- Data Procedure
+  Data gathering: ${state.methodology.collection || "[Describe data gathering procedure]"}
+  Data analysis: ${state.methodology.analysis || "[Describe data analysis]"}
+  Ethical considerations: Carry forward the ethics safeguards selected in the app.
+
+Definition of Terms
+- Operational Definition of Key Terms
+  Define ${core} and other key terms as used in this study. Operational definitions may be based on indicators, instruments, participant context, procedures, or how the construct will be measured or observed.
 
 Appendices
 - Permission Letter
@@ -636,7 +823,7 @@ Appendices
 function runChecks(stageId = state.currentStage) {
   const checks = {
     a1: checkA1,
-    details: checkSubmission,
+    details: checkStudentDetails,
     a2: checkA2,
     a3: checkA3,
     a4: checkA4,
@@ -645,7 +832,7 @@ function runChecks(stageId = state.currentStage) {
     instrumentation: checkInstrumentation,
     outline: () => [{ level: "green", text: "The outline is ready to guide drafting. Add institution-specific notes if your instructor requires a format." }],
     readiness: () => readinessReport().items,
-    submission: checkSubmission
+    submission: checkFinalSubmission
   };
   return checks[stageId]();
 }
@@ -700,7 +887,7 @@ function checkA4() {
     flag(Boolean(state.a3.finalGap), "A3 final gap is available.", "Complete A3 first so the problem is traceable from literature."),
     flag(Boolean(state.a4.literatureProblem), "Literature-based problem is stated.", "Translate the final gap into a problem statement."),
     flag(Boolean(state.a4.centralQuestion), "Central research question is written.", "Write the CRQ that responds to the problem."),
-    flag(questions.length >= 3 && questions.length <= 5, "There are 3-5 specific research questions.", "Add 3-5 SRQs that unpack the central question."),
+    flag(questions.length >= SRQ_LIMITS.minimum && questions.length <= SRQ_LIMITS.maximum, `There are ${SRQ_LIMITS.minimum}-${SRQ_LIMITS.maximum} specific research questions.`, `Add ${SRQ_LIMITS.minimum}-${SRQ_LIMITS.maximum} SRQs that unpack the central question.`),
     flag(Boolean(state.a4.questionType), "Needed understanding is identified.", "Name whether the study needs measurement, explanation/description, or both."),
     flag(Boolean(state.a4.studiedGroup), "Study focus is visible.", "Clarify who or what will be examined.")
   ];
@@ -712,7 +899,65 @@ function checkA4() {
       results.push({ level: "yellow", text: `Question ${index + 1} may read like a yes/no opinion question.` });
     }
   });
+  results.push(...questionStructureWarnings(questions));
   return results;
+}
+
+function questionStructureWarnings(questions) {
+  const warnings = [];
+  if (questions.length > SRQ_LIMITS.preferredMaximum) {
+    warnings.push({
+      level: "yellow",
+      text: `There are ${questions.length} specific research questions. This can be acceptable, but check whether some are only sub-parts of another question or can be combined.`
+    });
+  }
+  const starts = new Map();
+  questions.forEach((question, index) => {
+    const start = normalizeQuestion(question).split(" ").slice(0, 5).join(" ");
+    if (!start) return;
+    if (starts.has(start)) {
+      warnings.push({
+        level: "yellow",
+        text: `Questions ${starts.get(start) + 1} and ${index + 1} begin very similarly. Check whether they are separate questions or repeated parts of the same inquiry.`
+      });
+    } else {
+      starts.set(start, index);
+    }
+    if ((question.match(/\band\b/gi) || []).length >= 2) {
+      warnings.push({
+        level: "yellow",
+        text: `Question ${index + 1} may be double-barreled. Check whether it asks more than one question at once.`
+      });
+    }
+  });
+  for (let i = 0; i < questions.length; i += 1) {
+    for (let j = i + 1; j < questions.length; j += 1) {
+      if (questionOverlap(questions[i], questions[j]) >= 0.72) {
+        warnings.push({
+          level: "yellow",
+          text: `Questions ${i + 1} and ${j + 1} have substantial overlap. Check whether one is a sub-question or duplicate of the other.`
+        });
+      }
+    }
+  }
+  return warnings;
+}
+
+function normalizeQuestion(question) {
+  return String(question || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\b(what|how|is|there|the|a|an|of|in|to|for|among|with|and|or|does|do)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function questionOverlap(first, second) {
+  const firstTokens = new Set(normalizeQuestion(first).split(" ").filter((token) => token.length > 3));
+  const secondTokens = new Set(normalizeQuestion(second).split(" ").filter((token) => token.length > 3));
+  if (!firstTokens.size || !secondTokens.size) return 0;
+  const shared = [...firstTokens].filter((token) => secondTokens.has(token)).length;
+  return shared / Math.min(firstTokens.size, secondTokens.size);
 }
 
 function checkMethodology() {
@@ -737,23 +982,32 @@ function checkEthics() {
 }
 
 function checkInstrumentation() {
-  const rows = state.instrumentation.rows.filter((row) => row.rq || row.data || row.instrument);
+  const rows = state.instrumentation.rows.map(normalizeInstrumentRow).filter((row) => row.rq || row.instrument || row.description);
   const results = [flag(rows.length > 0, "At least one instrument row is listed.", "Add instruments for each research question.")];
   rows.forEach((row, index) => {
     if (!row.rq) results.push({ level: "red", text: `Row ${index + 1}: research question is missing.` });
     if (!row.instrument) results.push({ level: "red", text: `Row ${index + 1}: instrument is missing.` });
-    if (!row.source) results.push({ level: "yellow", text: `Row ${index + 1}: data source is missing.` });
+    if (!row.description) results.push({ level: "yellow", text: `Row ${index + 1}: instrument description is missing.` });
+    if (!row.purpose) results.push({ level: "yellow", text: `Row ${index + 1}: instrument purpose is missing.` });
     if (!row.validation) results.push({ level: "yellow", text: `Row ${index + 1}: validation or reliability/trustworthiness is missing.` });
+    if (!row.implementation) results.push({ level: "yellow", text: `Row ${index + 1}: instrument implementation is missing.` });
   });
   return results;
 }
 
-function checkSubmission() {
+function checkStudentDetails() {
   return [
     flag(Boolean(state.submission.studentName), "Student name is included.", "Add student name."),
     flag(Boolean(state.submission.course), "Course is included.", "Add course."),
     flag(Boolean(state.submission.submissionDate), "Date is included.", "Add the submission date."),
-    flag(Boolean(state.submission.confidence), "Confidence rating is included.", "Add a confidence rating.")
+    flag(Boolean(state.submission.initialReadiness), "Initial readiness reflection is included.", "Add an initial readiness reflection before A1.")
+  ];
+}
+
+function checkFinalSubmission() {
+  return [
+    flag(Boolean(state.submission.confidence), "Final readiness reflection is included.", "Add a final readiness reflection after completing the workflow."),
+    flag(Boolean(state.submission.readinessChange), "Change explanation is included.", "Explain what changed from the initial reflection and why.")
   ];
 }
 
@@ -788,8 +1042,11 @@ function readinessReport() {
 function stageCompletion(stageId) {
   const section = state[stageId] || {};
   if (stageId === "details") {
-    const fields = ["studentName", "course", "section", "submissionDate", "confidence"];
+    const fields = ["studentName", "course", "section", "submissionDate", "initialReadiness"];
     return fields.filter((field) => state.submission[field]).length / fields.length;
+  }
+  if (stageId === "submission") {
+    return ["confidence", "readinessChange"].filter((field) => state.submission[field]).length / 2;
   }
   if (stageId === "a1") {
     const fields = ["initialTopic", "majorNouns", "fifteenPageTest", "rrlMajorityTest", "coreConstruct"];
@@ -832,48 +1089,150 @@ function showFeedback() {
   updateDashboard();
 }
 
+function wordCount(text = "") {
+  return String(text).trim().split(/\s+/).filter(Boolean).length;
+}
+
+function instrumentationOutputHtml(rows) {
+  const labels = [
+    ["rq", "Research Question"],
+    ["instrument", "Instrument"],
+    ["description", "Description"],
+    ["purpose", "Purpose"],
+    ["validation", "Validation"],
+    ["implementation", "Implementation"]
+  ];
+  rows = rows.map(normalizeInstrumentRow);
+  const shouldStack = rows.some((row) => wordCount(Object.values(row).join(" ")) > 150);
+  if (shouldStack) {
+    return `<div class="instrument-cards">${rows.map((row, index) => `
+      <section class="instrument-card">
+        <h3>Instrument Row ${index + 1}</h3>
+        ${labels.map(([key, label]) => `<p><strong>${label}:</strong> ${escapeHtml(row[key])}</p>`).join("")}
+      </section>
+    `).join("")}</div>`;
+  }
+  const instrumentRows = rows.map((row) => `<tr><td>${escapeHtml(row.rq)}</td><td>${escapeHtml(row.instrument)}</td><td>${escapeHtml(row.description)}</td><td>${escapeHtml(row.purpose)}</td><td>${escapeHtml(row.validation)}</td><td>${escapeHtml(row.implementation)}</td></tr>`).join("");
+  return `<table><thead><tr><th>Research Question</th><th>Instrument</th><th>Description</th><th>Purpose</th><th>Validation</th><th>Implementation</th></tr></thead><tbody>${instrumentRows}</tbody></table>`;
+}
+
+function readinessPrintSummaryHtml(report) {
+  const warnings = report.items.filter((item) => item.level !== "green");
+  const methodologyReady = Boolean(state.methodology.selectedDesign && state.methodology.participants && state.methodology.collection && state.methodology.analysis);
+  const ethicsReady = Boolean(state.methodology.participants && Object.values(state.ethics.checks).some(Boolean));
+  const instrumentsReady = state.instrumentation.rows.map(normalizeInstrumentRow).some((row) => row.rq && row.instrument && row.description && row.purpose && row.validation && row.implementation);
+  const statusRows = [
+    ["Readiness score", `${report.score}/100 - ${report.label}`],
+    ["Alignment status", report.score >= 80 ? "Ready for adviser review" : report.score >= 50 ? "Needs revision before submission" : "Major alignment issues remain"],
+    ["Methodology status", methodologyReady ? "Methodology has the required core details." : "Methodology is missing design, participants, data gathering, or data analysis details."],
+    ["Ethics status", ethicsReady ? "Ethics safeguards have been started." : "Ethics safeguards need more detail before data gathering."],
+    ["Formatting status", "Letter-size print layout with 1-inch margins is applied."],
+    ["Instrumentation status", instrumentsReady ? "At least one instrument row includes alignment and validation details." : "Instrumentation needs clearer alignment or validation details."]
+  ];
+  return `
+    <div class="readiness-summary">
+      ${statusRows.map(([label, text]) => `<p><strong>${label}:</strong> ${escapeHtml(text)}</p>`).join("")}
+    </div>
+    <h3>Warnings</h3>
+    ${warnings.length ? `<ul class="warning-list">${warnings.map((item) => `<li>${escapeHtml(item.text)}</li>`).join("")}</ul>` : "<p>No major warnings detected.</p>"}
+  `;
+}
+
+function outlineHtml() {
+  const majorHeadings = new Set([
+    "Chapter 1: The Problem and Its Scope",
+    "Introduction",
+    "Statement of the Problem",
+    "Methodology",
+    "Definition of Terms",
+    "Appendices"
+  ]);
+  const subsectionHeadings = new Set([
+    "Rationale",
+    "Background of the Study",
+    "General Statement",
+    "Specific Statements in Question Form",
+    "Hypothesis/Assumptions",
+    "Significance",
+    "Design",
+    "Scope and Limitations/Delimitations",
+    "Participants",
+    "Locale",
+    "Instrumentation",
+    "Data Procedure",
+    "Operational Definition of Key Terms"
+  ]);
+  return buildOutline().split("\n").map((line) => {
+    const text = line.trim();
+    if (!text) return "";
+    if (majorHeadings.has(text)) {
+      return `<h3>${escapeHtml(text)}</h3>`;
+    }
+    if (text.startsWith("- ") && subsectionHeadings.has(text.slice(2))) {
+      return `<h4>${escapeHtml(text.slice(2))}</h4>`;
+    }
+    return `<p>${escapeHtml(text.replace(/^- /, ""))}</p>`;
+  }).join("");
+}
+
 function buildSubmissionHtml() {
   const report = readinessReport();
+  const generatedAt = new Date();
+  const printedBy = value("submission.studentName") || "__________";
+  const startedAt = formatTimestamp(state.startedAt);
+  const workDuration = formatDuration(state.startedAt, generatedAt);
   const patternRows = state.a2.patterns.map((row) => `<tr><td>${escapeHtml(row.type)}</td><td>${escapeHtml(row.notice)}</td><td>${escapeHtml(row.authors)}</td><td>${escapeHtml(row.years)}</td></tr>`).join("");
   const gapRows = state.a3.gaps.map((row) => `<tr><td>${escapeHtml(row.type)}</td><td>${escapeHtml(row.show)}</td><td>${escapeHtml(row.emphasized)}</td><td>${escapeHtml(row.lessVisible)}</td><td>${escapeHtml(row.limits)}</td><td>${escapeHtml(row.gap)}</td></tr>`).join("");
-  const instrumentRows = state.instrumentation.rows.map((row) => `<tr><td>${escapeHtml(row.rq)}</td><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.instrument)}</td><td>${escapeHtml(row.source)}</td><td>${escapeHtml(row.sample)}</td><td>${escapeHtml(row.validation)}</td></tr>`).join("");
+  const instrumentOutput = instrumentationOutputHtml(state.instrumentation.rows);
   return `
     <h1>Lit-Based Proposal Builder</h1>
     <p><strong>Student Name:</strong> ${escapeHtml(value("submission.studentName"))}<br>
     <strong>Course:</strong> ${escapeHtml(value("submission.course"))}<br>
     <strong>Section:</strong> ${escapeHtml(value("submission.section"))}<br>
     <strong>Date:</strong> ${escapeHtml(value("submission.submissionDate"))}</p>
+    <h2>Readiness Reflections</h2>
+    <h3>Initial Readiness Reflection</h3>
+    <p>${escapeHtml(value("submission.initialReadiness"))}</p>
+    <h3>Final Readiness Reflection</h3>
+    <p>${escapeHtml(value("submission.confidence"))}</p>
+    <h3>What Changed and Why</h3>
+    <p>${escapeHtml(value("submission.readinessChange"))}</p>
     <h2>A1 Core Construct</h2>
     <p>${escapeHtml(buildTopic())}</p>
-    <h2>A2 Literature Pattern Mapping</h2>
+    <h2 class="major-section">A2 Literature Pattern Mapping</h2>
     <table><thead><tr><th>Pattern Type</th><th>What appears across studies</th><th>Supporting Authors</th><th>Year</th></tr></thead><tbody>${patternRows}</tbody></table>
-    <h2>A3 Literature Gap</h2>
+    <h2 class="major-section">A3 Literature Gap</h2>
     <table><thead><tr><th>Pattern Type</th><th>Studies Repeatedly Show</th><th>Emphasized</th><th>Less Visible</th><th>Limits Understanding Of</th><th>Refined Gap</th></tr></thead><tbody>${gapRows}</tbody></table>
     <p><strong>Final gap:</strong> ${escapeHtml(value("a3.finalGap"))}</p>
-    <h2>A4 Literature-Based Problem</h2>
+    <h2 class="major-section">A4 Literature-Based Problem</h2>
     <p>${escapeHtml(buildProblem())}</p>
     <p><strong>Central research question:</strong> ${escapeHtml(value("a4.centralQuestion"))}</p>
     <h2>Specific Research Questions</h2>
     <ol>${state.a4.questions.filter(Boolean).map((q) => `<li>${escapeHtml(q)}</li>`).join("")}</ol>
-    <h2>Methodology</h2>
+    <h2 class="major-section">Methodology</h2>
     <p><strong>Research Design:</strong> ${escapeHtml(value("methodology.selectedDesign"))}</p>
+    <p><strong>Scope and Limitations/Delimitations:</strong> This study is bounded by the selected participants, locale, constructs, instruments, and data procedures described below.</p>
     <p><strong>Participants:</strong> ${escapeHtml(value("methodology.participants"))}</p>
     <p><strong>Sampling:</strong> ${escapeHtml(value("methodology.sampling"))}</p>
     <p><strong>Locale:</strong> ${escapeHtml(value("methodology.locale"))}</p>
-    <p><strong>Data Collection:</strong> ${escapeHtml(value("methodology.collection"))}</p>
+    <h2 class="major-section">Instrumentation</h2>
+    <p>Each instrument should include its description, purpose, validation, and implementation.</p>
+    ${instrumentOutput}
+    <h2>Data Procedure</h2>
+    <p><strong>Data Gathering:</strong> ${escapeHtml(value("methodology.collection"))}</p>
     <p><strong>Data Analysis:</strong> ${escapeHtml(value("methodology.analysis"))}</p>
-    <h2>Ethical Considerations</h2>
+    <h2 class="major-section">Ethical Considerations</h2>
     <p>${escapeHtml(value("ethics.draft") || buildEthicsDraft())}</p>
-    <h2>Instrumentation Table</h2>
-    <table><thead><tr><th>Research Question</th><th>Data Needed</th><th>Instrument</th><th>Source</th><th>Sample Item</th><th>Validation</th></tr></thead><tbody>${instrumentRows}</tbody></table>
-    <h2>Proposal Outline</h2>
-    <pre>${escapeHtml(buildOutline())}</pre>
-    <h2>Proposal Readiness Report</h2>
-    <p><span class="pill ${report.score >= 80 ? "green" : report.score >= 50 ? "yellow" : "red"}">${report.score}/100 - ${escapeHtml(report.label)}</span></p>
-    ${report.items.map(feedbackHtml).join("")}
-    <h2>Confidence Rating</h2>
-    <p>${escapeHtml(value("submission.confidence"))}</p>
-    <footer><p>Generated by Lit-Based Proposal Builder</p></footer>
+    <h2>Definition of Terms</h2>
+    <p>Define the core construct and key terms as used in this study. Operational definitions may be based on indicators, instruments, participant context, procedures, or how each construct will be measured or observed.</p>
+    <h2>Chapter 1 Template Alignment</h2>
+    <div class="chapter-template">${outlineHtml()}</div>
+    <h2 class="major-section">Proposal Readiness Report</h2>
+    ${readinessPrintSummaryHtml(report)}
+    <footer><p>Generated by Lit-Based Proposal Builder<br>
+    Printed by ${escapeHtml(printedBy)} on ${escapeHtml(formatTimestamp(generatedAt))}.<br>
+    Started work on ${escapeHtml(startedAt)}.<br>
+    Duration of work: ${escapeHtml(workDuration)}.</p></footer>
   `;
 }
 
@@ -882,8 +1241,19 @@ function previewSubmission() {
   els.previewDialog.showModal();
 }
 
+function printSubmission() {
+  const printTarget = document.getElementById("printSubmission");
+  printTarget.innerHTML = buildSubmissionHtml();
+  document.body.classList.add("printing-submission");
+  window.print();
+  window.setTimeout(() => {
+    document.body.classList.remove("printing-submission");
+    printTarget.innerHTML = "";
+  }, 500);
+}
+
 function syncStudentDetailsFields() {
-  ["studentName", "course", "section", "submissionDate", "confidence"].forEach((key) => {
+  ["studentName", "course", "section", "submissionDate", "initialReadiness"].forEach((key) => {
     const field = document.getElementById(`details-${key}`);
     if (field) field.value = value(`submission.${key}`);
   });
@@ -1157,6 +1527,11 @@ function attachEvents() {
       state.a4.questions[Number(target.dataset.index)] = target.value;
       saveState();
     }
+    if (target.dataset.questionPurpose !== undefined) {
+      state.a4.questionPurposes[Number(target.dataset.questionPurpose)] = target.value;
+      saveState();
+      renderStage();
+    }
     if (target.dataset.table) {
       const collection = getTableRows(target.dataset.table);
       collection[Number(target.dataset.index)][target.dataset.key] = target.value;
@@ -1199,12 +1574,17 @@ function attachEvents() {
       renderStage();
     }
     if (target.dataset.addQuestion !== undefined) {
-      if (state.a4.questions.length < 5) state.a4.questions.push("");
+      if (state.a4.questions.length < SRQ_LIMITS.maximum) {
+        state.a4.questions.push("");
+        state.a4.questionPurposes.push("");
+      }
       saveState();
       renderStage();
     }
     if (target.dataset.removeQuestion !== undefined) {
-      state.a4.questions.splice(Number(target.dataset.removeQuestion), 1);
+      const index = Number(target.dataset.removeQuestion);
+      state.a4.questions.splice(index, 1);
+      state.a4.questionPurposes.splice(index, 1);
       saveState();
       renderStage();
     }
@@ -1231,8 +1611,8 @@ function attachEvents() {
   document.getElementById("studentDetailsBtn").addEventListener("click", openStudentDetails);
   document.getElementById("closeStudentDetailsBtn").addEventListener("click", () => document.getElementById("studentDetailsDialog").close());
   document.getElementById("closePreviewBtn").addEventListener("click", () => els.previewDialog.close());
-  document.getElementById("printBtn").addEventListener("click", () => window.print());
-  document.getElementById("pdfBtn").addEventListener("click", () => window.print());
+  document.getElementById("printBtn").addEventListener("click", printSubmission);
+  document.getElementById("pdfBtn").addEventListener("click", printSubmission);
   document.getElementById("exportBtn").addEventListener("click", exportJson);
   document.getElementById("importBtn").addEventListener("click", () => els.importFile.click());
   document.getElementById("uploadFormsBtn").addEventListener("click", openUploadDialog);
@@ -1279,4 +1659,5 @@ function attachEvents() {
 
 attachEvents();
 render();
+saveState();
 setInterval(saveState, 30000);

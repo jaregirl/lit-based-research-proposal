@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lit-Based Proposal Builder</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles-upload.css" />
   </head>
   <body>
@@ -98,6 +99,8 @@
       </div>
     </dialog>
 
+    <article id="printSubmission" class="submission print-submission" aria-hidden="true"></article>
+
     <dialog id="studentDetailsDialog">
       <div class="dialog-header">
         <h2>Student Details</h2>
@@ -122,9 +125,9 @@
             <input id="details-submissionDate" data-section="submission" data-key="submissionDate" />
           </div>
           <div class="field full">
-            <label for="details-confidence">Confidence Rating</label>
-            <textarea id="details-confidence" data-section="submission" data-key="confidence"></textarea>
-            <p class="hint">Example: 3/5 because my questions are clear but my instruments need refinement.</p>
+            <label for="details-initialReadiness">Initial Readiness Reflection</label>
+            <textarea id="details-initialReadiness" data-section="submission" data-key="initialReadiness"></textarea>
+            <p class="hint">Before starting A1, briefly state how ready you think your proposal idea is.</p>
           </div>
         </div>
       </section>

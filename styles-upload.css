@@ -216,7 +216,25 @@ button.danger:hover {
 }
 
 .stage-label {
+  display: grid;
+  gap: 2px;
   font-size: 0.9rem;
+}
+
+.stage-label small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stage-tab.next-step {
+  border-color: rgba(47, 111, 100, 0.45);
+  background: #f7fbf9;
+}
+
+.stage-tab.next-step .stage-label small {
+  color: var(--accent-dark);
 }
 
 .status-dot {
@@ -367,6 +385,28 @@ textarea {
   grid-template-columns: 1fr auto;
 }
 
+.question-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.question-row label,
+.question-row textarea,
+.question-row .hint {
+  grid-column: 1 / -1;
+}
+
+.question-row .row-remove {
+  width: 100%;
+  min-height: 38px;
+  grid-column: 1 / -1;
+}
+
 .list-row .hint {
   grid-column: 1 / -1;
 }
@@ -375,6 +415,38 @@ textarea {
   grid-template-columns: repeat(var(--cols), minmax(145px, 1fr)) auto;
   align-items: start;
   min-width: 820px;
+}
+
+.instrumentation-row {
+  grid-template-columns: 1fr;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.instrumentation-row label:first-child {
+  grid-column: auto;
+}
+
+.instrumentation-row textarea {
+  min-height: 120px;
+}
+
+.instrumentation-row .row-remove {
+  align-self: start;
+  width: 100%;
+  min-height: 38px;
+}
+
+.instrumentation-row .output-box {
+  padding: 10px;
+  background: #f7faf9;
+}
+
+.instrumentation-row .generated-text {
+  min-height: 0;
 }
 
 .table-scroll {
@@ -477,6 +549,10 @@ dialog::backdrop {
   line-height: 1.55;
 }
 
+.print-submission {
+  display: none;
+}
+
 .upload-panel {
   display: grid;
   gap: 14px;
@@ -518,6 +594,34 @@ dialog::backdrop {
 .submission h2,
 .submission h3 {
   margin: 0.8em 0 0.35em;
+}
+
+.readiness-summary,
+.instrument-card {
+  border: 1px solid #999;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.readiness-summary p,
+.instrument-card p {
+  margin: 0 0 8px;
+}
+
+.warning-list li,
+.submission ol li {
+  margin-bottom: 8px;
+}
+
+.chapter-template {
+  display: grid;
+  gap: 6px;
+}
+
+.chapter-template h3,
+.chapter-template h4,
+.chapter-template p {
+  margin: 0;
 }
 
 .submission table {
@@ -563,10 +667,32 @@ dialog::backdrop {
   .sidebar {
     position: static;
     height: auto;
+    padding: 16px;
   }
 
   .stage-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 12px 0;
+  }
+
+  .stage-tab {
+    grid-template-columns: 34px 1fr;
+    min-height: 42px;
+    padding: 6px;
+  }
+
+  .stage-tab .status-dot {
+    display: none;
+  }
+
+  .brand {
+    margin-bottom: 14px;
+  }
+
+  .dashboard,
+  .side-panel {
+    padding: 12px;
   }
 
   .workspace {
@@ -631,13 +757,13 @@ dialog::backdrop {
   .stage-form,
   .checker-panel,
   .footer-actions,
+  dialog,
   .dialog-header,
   .dialog-actions {
     display: none !important;
   }
 
-  dialog,
-  dialog[open] {
+  body.printing-submission .print-submission {
     display: block !important;
     position: static;
     width: auto;
@@ -645,14 +771,125 @@ dialog::backdrop {
     box-shadow: none;
   }
 
-  .submission {
+  body.printing-submission .submission {
     display: block;
     padding: 0;
+    color: #000000;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  body.printing-submission .submission h1 {
+    margin: 0 0 12pt;
+    font-size: 18pt;
+    line-height: 1.25;
+  }
+
+  body.printing-submission .submission h2 {
+    margin: 18pt 0 8pt;
+    font-size: 16pt;
+    line-height: 1.25;
+    font-weight: 700;
+  }
+
+  body.printing-submission .submission h3 {
+    margin: 12pt 0 6pt;
+    font-size: 13pt;
+    line-height: 1.25;
+    font-weight: 700;
+  }
+
+  body.printing-submission .chapter-template {
+    display: block;
+  }
+
+  body.printing-submission .chapter-template h3 {
+    margin: 12pt 0 6pt;
+    font-size: 13pt;
+  }
+
+  body.printing-submission .chapter-template h4 {
+    margin: 8pt 0 3pt;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  body.printing-submission .chapter-template p {
+    margin: 0 0 4pt 14pt;
+    line-height: 1.4;
+  }
+
+  body.printing-submission .submission p {
+    margin: 0 0 6pt;
+  }
+
+  body.printing-submission .submission ol,
+  body.printing-submission .submission ul {
+    margin-top: 0;
+    margin-bottom: 12pt;
+    padding-left: 24pt;
+  }
+
+  body.printing-submission .submission li {
+    margin-bottom: 8pt;
+    break-inside: avoid;
+  }
+
+  body.printing-submission .submission .major-section {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  body.printing-submission .submission table {
+    margin: 12pt 0 16pt;
+    font-size: 9pt;
+    line-height: 1.35;
+    page-break-inside: auto;
+  }
+
+  body.printing-submission .submission thead {
+    display: table-header-group;
+  }
+
+  body.printing-submission .submission tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.printing-submission .submission th,
+  body.printing-submission .submission td {
+    padding: 6pt;
+  }
+
+  body.printing-submission .submission tbody tr:nth-child(even) {
+    background: #f2f2f2;
+  }
+
+  body.printing-submission .submission pre {
+    white-space: pre-wrap;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+
+  body.printing-submission .readiness-summary,
+  body.printing-submission .instrument-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding: 10pt;
+    margin: 10pt 0;
+  }
+
+  body.printing-submission footer {
+    margin-top: 18pt;
+    border-top: 1px solid #999;
+    padding-top: 8pt;
+    font-size: 9pt;
   }
 
   @page {
-    size: A4;
-    margin: 20mm 18mm;
+    size: Letter;
+    margin: 1in;
   }
 }
