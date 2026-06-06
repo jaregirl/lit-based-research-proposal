@@ -125,6 +125,12 @@ button.danger:hover {
   font-size: 0.85rem;
 }
 
+.brand .app-version {
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .dashboard,
 .side-panel,
 .checker-panel,
