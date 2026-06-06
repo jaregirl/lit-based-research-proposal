@@ -717,10 +717,15 @@ function renderReadiness() {
 }
 
 function renderSubmission() {
+  const missing = finalSubmissionMissingItems();
   els.stageForm.innerHTML = `
     <section class="output-box">
       <h3>Submission Tools</h3>
-      <div class="generated-text">Complete the readiness reflection after reviewing the proposal readiness report. Then preview the submission and use Generate PDF or Print.</div>
+      <div class="generated-text">Complete the readiness reflection after reviewing the proposal readiness report. Preview is available anytime. Generate PDF or Print will unlock after the required parts are complete. Instructor notes/local format reminders are optional.</div>
+    </section>
+    <section class="output-box">
+      <h3>PDF Readiness</h3>
+      <div class="generated-text">${missing.length ? `Locked. Missing required items:\n${missing.slice(0, 10).map((item) => `- ${item}`).join("\n")}${missing.length > 10 ? `\n...and ${missing.length - 10} more.` : ""}` : "Ready. Required parts are complete, and PDF/Print can be generated."}</div>
     </section>
     <section class="output-box">
       <h3>Initial Readiness Reflection</h3>
@@ -1475,7 +1480,81 @@ function previewSubmission() {
   els.previewDialog.showModal();
 }
 
+function finalSubmissionMissingItems() {
+  syncInstrumentationRows();
+  const missing = [];
+  const requireValue = (path, label) => {
+    if (!String(value(path) || "").trim()) missing.push(label);
+  };
+
+  requireValue("submission.studentName", "Student name");
+  requireValue("submission.course", "Course");
+  requireValue("submission.section", "Section");
+  requireValue("submission.submissionDate", "Date");
+  requireValue("submission.initialReadiness", "Initial readiness reflection");
+
+  ["initialTopic", "majorNouns", "fifteenPageTest", "rrlMajorityTest", "coreConstruct"].forEach((key) => {
+    requireValue(`a1.${key}`, `A1: ${fieldSets.a1.find((field) => field[0] === key)?.[1] || key}`);
+  });
+
+  const completeA2Rows = state.a2.patterns.filter((row) => row.notice && row.authors && row.years);
+  if (completeA2Rows.length < 3) missing.push("A2: at least three literature pattern rows with notice, supporting authors, and year");
+  requireValue("a2.synthesis", "A2: short synthesis");
+
+  const completeA3Rows = state.a3.gaps.filter((row) => row.show && row.emphasized && row.lessVisible && row.limits && row.gap);
+  if (completeA3Rows.length < 1) missing.push("A3: at least one complete gap row");
+  ["strongestGap", "weakestGap", "selectionReason", "finalGap"].forEach((key) => {
+    requireValue(`a3.${key}`, `A3: ${key}`);
+  });
+
+  ["literatureProblem", "centralQuestion", "questionType", "studiedGroup", "rqConstructs"].forEach((key) => {
+    requireValue(`a4.${key}`, `A4: ${fieldSets.a4.find((field) => field[0] === key)?.[1] || key}`);
+  });
+  const questions = state.a4.questions.filter((question) => question.trim());
+  if (questions.length < SRQ_LIMITS.minimum || questions.length > SRQ_LIMITS.maximum) {
+    missing.push(`A4: ${SRQ_LIMITS.minimum}-${SRQ_LIMITS.maximum} specific research questions`);
+  }
+  questions.forEach((question, index) => {
+    if (!state.a4.questionPurposes[index]) missing.push(`A4: purpose for SRQ ${index + 1}`);
+  });
+
+  ["rqTypes", "dataNeeded", "participants", "purpose"].forEach((key) => {
+    requireValue(`methodology.${key}`, `Methodology: ${fieldSets.methodology.find((field) => field[0] === key)?.[1] || key}`);
+  });
+  ["selectedDesign", "sampling", "locale", "collection", "analysis"].forEach((key) => {
+    requireValue(`methodology.${key}`, `Methodology: ${key}`);
+  });
+
+  ["participantAge", "powerIssue", "dataPrivacy", "permissions"].forEach((key) => {
+    requireValue(`ethics.${key}`, `Ethics: ${fieldSets.ethics.find((field) => field[0] === key)?.[1] || key}`);
+  });
+  if (!Object.values(state.ethics.checks).some(Boolean)) missing.push("Ethics: select applicable safeguards");
+  requireValue("ethics.draft", "Ethics: draft ethical considerations section");
+
+  questions.forEach((question, index) => {
+    const row = normalizeInstrumentRow(state.instrumentation.rows[index] || emptyRowFor("instrumentation"));
+    ["instrument", "description", "purpose", "validation", "implementation"].forEach((key) => {
+      if (!row[key]) missing.push(`Instrumentation: ${key} for SRQ ${index + 1}`);
+    });
+  });
+
+  requireValue("submission.confidence", "Final readiness reflection");
+  requireValue("submission.readinessChange", "What changed and why");
+
+  return missing;
+}
+
+function requireReadyForPdf() {
+  const missing = finalSubmissionMissingItems();
+  if (!missing.length) return true;
+  const shown = missing.slice(0, 12).map((item) => `- ${item}`).join("\n");
+  const extra = missing.length > 12 ? `\n...and ${missing.length - 12} more item${missing.length - 12 === 1 ? "" : "s"}.` : "";
+  window.alert(`PDF generation is locked until the required parts are complete.\n\nMissing:\n${shown}${extra}\n\nInstructor notes/local format reminders are optional.`);
+  return false;
+}
+
 function printSubmission() {
+  if (!requireReadyForPdf()) return;
   const printTarget = document.getElementById("printSubmission");
   printTarget.innerHTML = buildSubmissionHtml();
   document.body.classList.add("printing-submission");

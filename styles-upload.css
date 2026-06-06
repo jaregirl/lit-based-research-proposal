@@ -372,10 +372,7 @@ label {
 }
 
 .help-icon:hover + .help-tooltip,
-.help-icon:focus + .help-tooltip,
-.field:focus-within .help-tooltip,
-.question-row label:focus-within .help-tooltip,
-.table-row label:focus-within .help-tooltip {
+.help-icon:focus + .help-tooltip {
   display: block;
 }
 
