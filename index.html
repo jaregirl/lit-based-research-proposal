@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lit-Based Proposal Builder Upload Version</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles-upload.css?v=20260607-about-revised-foundations" />
+    <link rel="stylesheet" href="styles-upload.css?v=20260607-welcome-privacy" />
   </head>
   <body>
     <div class="app-shell">
@@ -104,6 +104,19 @@
 
     <article id="printSubmission" class="submission print-submission" aria-hidden="true"></article>
 
+    <dialog id="welcomeDialog" class="welcome-dialog">
+      <section class="about-content">
+        <h2>Before You Begin</h2>
+        <p><strong>Your work is saved locally in your own browser.</strong> The app does not send your answers to the developer, instructor, or a cloud server.</p>
+        <p>Use <strong>Download Backup</strong> before changing devices, clearing browser data, or updating the app. Use <strong>Restore Backup</strong> if you need to recover a saved draft.</p>
+        <p><strong>Lit-Based Proposal Builder</strong> was developed by J. Arawiran with assistance from OpenAI Codex, a GPT-5-based coding assistant (June 2026).</p>
+        <p>This is a guided academic thinking tool. It supports proposal drafting, but it does not replace adviser feedback, instructor requirements, department policies, institutional guidelines, or official ethics review processes.</p>
+        <div class="dialog-actions inline-actions">
+          <button class="primary" id="proceedBtn" type="button">Proceed to Builder</button>
+        </div>
+      </section>
+    </dialog>
+
     <dialog id="aboutDialog">
       <div class="dialog-header">
         <h2>About & Sources</h2>
@@ -113,6 +126,9 @@
         <h3>App Attribution</h3>
         <p><strong>Lit-Based Proposal Builder</strong> was developed by J. Arawiran with assistance from OpenAI Codex, a GPT-5-based coding assistant (June 2026).</p>
         <p>This app is a guided academic thinking tool designed to support the development of research proposals. It assists users in organizing ideas, identifying research problems, aligning research questions with methods, and drafting proposal components. It does not replace adviser feedback, instructor requirements, department policies, institutional guidelines, or official ethics review processes.</p>
+
+        <h3>Data Privacy and Local Storage</h3>
+        <p>The app saves draft work locally in the user's own browser storage. The developer, instructor, and app do not receive, collect, or store the student's answers through this tool. Draft data is not transmitted to a cloud server by the app. Students should still use the Download Backup feature before changing devices, clearing browser data, or updating the app.</p>
 
         <h3>Conceptual and Educational Foundations</h3>
         <p>The design of this proposal builder draws upon established literature in research methodology, educational research, research ethics, and reflective inquiry. These sources informed the structure and guidance provided by the app. They are not automatically part of a student's proposal references unless they are directly consulted and cited by the student.</p>
@@ -206,6 +222,6 @@
 
     <input id="importFile" type="file" accept="application/json" hidden />
     <script src="jszip.min.js"></script>
-    <script src="app-upload.js?v=20260607-about-revised-foundations"></script>
+    <script src="app-upload.js?v=20260607-welcome-privacy"></script>
   </body>
 </html>

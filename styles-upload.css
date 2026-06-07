@@ -656,6 +656,22 @@ dialog::backdrop {
   margin-top: 8px;
 }
 
+.welcome-dialog {
+  width: min(680px, calc(100vw - 28px));
+}
+
+.welcome-dialog .about-content h2 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.inline-actions {
+  position: static;
+  justify-content: flex-end;
+  border-top: 0;
+  padding: 8px 0 0;
+}
+
 .details-panel {
   padding: 20px;
 }

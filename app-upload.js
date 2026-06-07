@@ -1,6 +1,7 @@
 const STORAGE_KEY = "proposalBuilderA4DraftUploadVersion";
 const APP_VERSION = "v3.2 - Attribution & Sources";
 const APP_CREDIT = "Developed by J. Arawiran with assistance from OpenAI Codex, GPT-5-based coding assistant, June 2026.";
+const WELCOME_KEY = `${STORAGE_KEY}:welcome:v3.2`;
 const SRQ_LIMITS = {
   minimum: 2,
   preferredMaximum: 5,
@@ -218,7 +219,8 @@ const els = {
   importFile: document.getElementById("importFile"),
   appVersion: document.getElementById("appVersion"),
   appCredit: document.getElementById("appCredit"),
-  aboutDialog: document.getElementById("aboutDialog")
+  aboutDialog: document.getElementById("aboutDialog"),
+  welcomeDialog: document.getElementById("welcomeDialog")
 };
 
 function clone(value) {
@@ -425,6 +427,10 @@ function renderFields(section, fields) {
 
 function renderStudentDetailsStage() {
   els.stageForm.innerHTML = `
+    <section class="output-box">
+      <h3>Before You Begin: Privacy and Local Saving</h3>
+      <div class="generated-text">Your work is saved locally in your own browser. The app does not send your answers to the developer, instructor, or a cloud server. Use Download Backup before changing devices, clearing browser data, or updating the app.</div>
+    </section>
     <section class="output-box">
       <h3>Student Details</h3>
       <p class="hint">These details will appear in the proposal summary and PDF submission. You can update them later from the Student Details button.</p>
@@ -1585,6 +1591,11 @@ function openStudentDetails() {
   document.getElementById("studentDetailsDialog").showModal();
 }
 
+function showWelcomeIfNeeded() {
+  if (!els.welcomeDialog || localStorage.getItem(WELCOME_KEY)) return;
+  els.welcomeDialog.showModal();
+}
+
 function exportJson() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1932,6 +1943,10 @@ function attachEvents() {
   document.getElementById("studentDetailsBtn").addEventListener("click", openStudentDetails);
   document.getElementById("aboutBtn").addEventListener("click", () => els.aboutDialog.showModal());
   document.getElementById("closeAboutBtn").addEventListener("click", () => els.aboutDialog.close());
+  document.getElementById("proceedBtn").addEventListener("click", () => {
+    localStorage.setItem(WELCOME_KEY, "seen");
+    els.welcomeDialog.close();
+  });
   document.getElementById("closeStudentDetailsBtn").addEventListener("click", () => document.getElementById("studentDetailsDialog").close());
   document.getElementById("closePreviewBtn").addEventListener("click", () => els.previewDialog.close());
   document.getElementById("printBtn").addEventListener("click", printSubmission);
@@ -1982,5 +1997,6 @@ function attachEvents() {
 
 attachEvents();
 render();
+showWelcomeIfNeeded();
 saveState();
 setInterval(saveState, 30000);
