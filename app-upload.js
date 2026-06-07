@@ -1,7 +1,7 @@
 const STORAGE_KEY = "proposalBuilderA4DraftUploadVersion";
-const APP_VERSION = "v3.2 - Attribution & Sources";
+const APP_VERSION = "v3.3 - Welcome & Privacy";
 const APP_CREDIT = "Developed by J. Arawiran with assistance from OpenAI Codex, GPT-5-based coding assistant, June 2026.";
-const WELCOME_KEY = `${STORAGE_KEY}:welcome:v3.2`;
+const WELCOME_KEY = `${STORAGE_KEY}:welcome:v3.3`;
 const SRQ_LIMITS = {
   minimum: 2,
   preferredMaximum: 5,
@@ -1943,6 +1943,7 @@ function attachEvents() {
   document.getElementById("studentDetailsBtn").addEventListener("click", openStudentDetails);
   document.getElementById("aboutBtn").addEventListener("click", () => els.aboutDialog.showModal());
   document.getElementById("closeAboutBtn").addEventListener("click", () => els.aboutDialog.close());
+  document.getElementById("welcomeAboutBtn").addEventListener("click", () => els.aboutDialog.showModal());
   document.getElementById("proceedBtn").addEventListener("click", () => {
     localStorage.setItem(WELCOME_KEY, "seen");
     els.welcomeDialog.close();
