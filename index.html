@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lit-Based Proposal Builder Upload Version</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles-upload.css?v=20260606-version-label" />
+    <link rel="stylesheet" href="styles-upload.css?v=20260607-about-revised-foundations" />
   </head>
   <body>
     <div class="app-shell">
@@ -15,6 +15,7 @@
             <h1>Lit-Based Proposal Builder</h1>
             <p>From literature to proposal</p>
             <p class="app-version" id="appVersion">Version loading...</p>
+            <p class="app-credit" id="appCredit">Developed by J. Arawiran with assistance from OpenAI Codex.</p>
           </div>
         </div>
 
@@ -83,6 +84,7 @@
           <button id="saveBtn" type="button">Save Draft</button>
           <button id="summaryBtn" type="button">Generate Proposal Summary</button>
           <button id="previewBtn" type="button">Preview Submission</button>
+          <button class="ghost" id="aboutBtn" type="button">About & Sources</button>
           <button class="primary" id="nextBtn" type="button">Next</button>
         </footer>
       </main>
@@ -101,6 +103,55 @@
     </dialog>
 
     <article id="printSubmission" class="submission print-submission" aria-hidden="true"></article>
+
+    <dialog id="aboutDialog">
+      <div class="dialog-header">
+        <h2>About & Sources</h2>
+        <button class="ghost" id="closeAboutBtn" type="button">Close</button>
+      </div>
+      <section class="about-content">
+        <h3>App Attribution</h3>
+        <p><strong>Lit-Based Proposal Builder</strong> was developed by J. Arawiran with assistance from OpenAI Codex, a GPT-5-based coding assistant (June 2026).</p>
+        <p>This app is a guided academic thinking tool designed to support the development of research proposals. It assists users in organizing ideas, identifying research problems, aligning research questions with methods, and drafting proposal components. It does not replace adviser feedback, instructor requirements, department policies, institutional guidelines, or official ethics review processes.</p>
+
+        <h3>Conceptual and Educational Foundations</h3>
+        <p>The design of this proposal builder draws upon established literature in research methodology, educational research, research ethics, and reflective inquiry. These sources informed the structure and guidance provided by the app. They are not automatically part of a student's proposal references unless they are directly consulted and cited by the student.</p>
+
+        <h3>Research Methodology Foundations</h3>
+        <p>The proposal-development workflow is informed by widely used approaches to research design and proposal writing, particularly the work of:</p>
+        <ul>
+          <li>Creswell, J. W., & Creswell, J. D. on qualitative, quantitative, and mixed methods research design.</li>
+          <li>Cohen, L., Manion, L., & Morrison, K. on educational research methods and research ethics.</li>
+        </ul>
+        <p>These works informed the app's guidance on problem formulation, purpose statements, research questions, methodological alignment, and proposal structure.</p>
+
+        <h3>Research Ethics Foundations</h3>
+        <p>The ethical guidance embedded in the app is informed by:</p>
+        <ul>
+          <li>Philippine Health Research Ethics Board (PHREB) National Ethical Guidelines for Health and Health-Related Research (2022).</li>
+          <li>American Educational Research Association (AERA) Code of Ethics.</li>
+          <li>British Educational Research Association (BERA) Ethical Guidelines.</li>
+          <li>Ethical principles discussed in Creswell and Creswell and in Cohen, Manion, and Morrison.</li>
+        </ul>
+        <p>These sources informed prompts related to informed consent, confidentiality, anonymity, voluntary participation, potential risks and benefits, vulnerable participants, and conflicts of interest.</p>
+
+        <h3>Research Thinking Philosophy</h3>
+        <p>The app reflects the view that research is a process of refining explanations through evidence, discussion, and revision rather than defending fixed ideas. This perspective is reflected in the Research Thinking Guidelines used in the course and in the design of the A1-A4 proposal-writing scaffolds developed by J. Arawiran.</p>
+        <p>The app also reflects the perspective articulated by Schwartz, M. A. (2008), <em>The Importance of Stupidity in Scientific Research</em>. This work influenced the treatment of uncertainty, revision, intellectual risk-taking, and the understanding that confusion and incomplete knowledge are normal parts of the research process.</p>
+
+        <h3>Selected Reference Anchors</h3>
+        <ul>
+          <li>Braun, V., & Clarke, V. (2022). <em>Thematic Analysis: A Practical Guide.</em></li>
+          <li>Cohen, L., Manion, L., & Morrison, K. (2018). <em>Research Methods in Education.</em></li>
+          <li>Creswell, J. W., & Creswell, J. D. (2023). <em>Research Design: Qualitative, Quantitative, and Mixed Methods Approaches.</em></li>
+          <li>PHREB. (2022). <em>National Ethical Guidelines for Health and Health-Related Research.</em></li>
+          <li>Schwartz, M. A. (2008). The Importance of Stupidity in Scientific Research. <em>Journal of Cell Science, 121</em>, 1771.</li>
+        </ul>
+
+        <h3>Use Reminder</h3>
+        <p>Students should treat all generated content as a working draft. Final research decisions, methodological choices, ethical considerations, proposal requirements, and formatting requirements should be reviewed and approved by the adviser, instructor, program head, dean, or other authorized academic personnel.</p>
+      </section>
+    </dialog>
 
     <dialog id="studentDetailsDialog">
       <div class="dialog-header">
@@ -155,6 +206,6 @@
 
     <input id="importFile" type="file" accept="application/json" hidden />
     <script src="jszip.min.js"></script>
-    <script src="app-upload.js?v=20260606-version-label"></script>
+    <script src="app-upload.js?v=20260607-about-revised-foundations"></script>
   </body>
 </html>
