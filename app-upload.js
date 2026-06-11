@@ -1,5 +1,5 @@
 const STORAGE_KEY = "proposalBuilderA4DraftUploadVersion";
-const APP_VERSION = "v3.3 - Welcome & Privacy";
+const APP_VERSION = "v3.3.1 - Upload Detection Fix";
 const APP_CREDIT = "Developed by J. Arawiran with assistance from OpenAI Codex, GPT-5-based coding assistant, June 2026.";
 const WELCOME_KEY = `${STORAGE_KEY}:welcome:v3.3`;
 const SRQ_LIMITS = {
@@ -1678,10 +1678,21 @@ function extractTextFromNode(node) {
 }
 
 function detectFormType(fileName, text) {
-  const joined = `${fileName}\n${text}`.toLowerCase();
-  if (joined.includes("a1") || joined.includes("core construct")) return "a1";
-  if (joined.includes("a2") || joined.includes("pattern mapping")) return "a2";
-  if (joined.includes("a3") || joined.includes("patterns to gaps") || joined.includes("gap statement")) return "a3";
+  const name = fileName.toLowerCase();
+  const content = text.toLowerCase();
+  const joined = `${name}\n${content}`;
+  if (/a1\b/.test(name) || name.includes("core construct identification")) return "a1";
+  if (/a2\b/.test(name) || name.includes("deepened review") || name.includes("pattern mapping")) return "a2";
+  if (/a3\b/.test(name) || name.includes("from patterns to gaps")) return "a3";
+
+  const score = (anchors) => anchors.reduce((sum, item) => sum + (joined.includes(item) ? 1 : 0), 0);
+  const scores = {
+    a1: score(["core construct identification", "extract the nouns", "15-page test", "rrl majority test", "final declaration", "my study is about"]),
+    a2: score(["deepened review and pattern mapping", "reading requirement", "pattern mapping matrix", "what do you notice across studies", "supporting authors", "short synthesis"]),
+    a3: score(["from patterns to gaps", "what becomes less visible", "refined gap statement", "gap statement based on a3 matrix", "studies repeatedly show", "limits us from understanding"])
+  };
+  const winner = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  if (winner && winner[1] >= 2) return winner[0];
   return "unknown";
 }
 
