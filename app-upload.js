@@ -1,5 +1,5 @@
 const STORAGE_KEY = "proposalBuilderA4DraftUploadVersion";
-const APP_VERSION = "v3.3.1 - Upload Detection Fix";
+const APP_VERSION = "v3.3.1 - A3 Upload Fix";
 const APP_CREDIT = "Developed by J. Arawiran with assistance from OpenAI Codex, GPT-5-based coding assistant, June 2026.";
 const WELCOME_KEY = `${STORAGE_KEY}:welcome:v3.3`;
 const SRQ_LIMITS = {
@@ -1616,7 +1616,7 @@ async function extractUploadFile(file) {
     return extractDocxText(arrayBuffer, ZipReader);
   }
   if (file.name.toLowerCase().endsWith(".pdf")) {
-    return extractPdfText(await file.arrayBuffer());
+    throw new Error("PDF upload is not supported for A1-A3 forms. Please upload DOCX or paste copied text.");
   }
   return file.text();
 }
@@ -1730,20 +1730,95 @@ function parseA2Upload(text) {
   const patternTypes = ["Context", "Method", "Theory", "Evidence", "Practice", "Population", "Definition"];
   const patterns = [];
   for (const type of patternTypes) {
-    const line = lines.find((item) => item.toLowerCase().startsWith(type.toLowerCase()) && item.length > type.length + 8);
-    if (line) {
-      const parts = line.split(/\t|\s{2,}|\|/).map((part) => part.trim()).filter(Boolean);
-      patterns.push({
-        type,
-        notice: cleanExtract(parts[1] || line.replace(new RegExp(`^${type}`, "i"), "")),
-        authors: cleanExtract(parts[2] || ""),
-        years: cleanExtract(parts[3] || "")
-      });
-    }
+    const row = parseA2PatternBlock(lines, type, patternTypes);
+    if (row) patterns.push(row);
+  }
+  const usablePatterns = patterns.filter((row) => row.authors || row.years || (row.notice && !/^\(?who|^\(?how|^\(?what/i.test(row.notice)));
+  if (usablePatterns.length < 2) {
+    const flatPatterns = parseA2FlatText(text, patternTypes);
+    if (flatPatterns.length) patterns.splice(0, patterns.length, ...flatPatterns);
   }
   const synthesisIndex = lines.findIndex((line) => /short synthesis/i.test(line));
-  const synthesis = synthesisIndex >= 0 ? lines.slice(synthesisIndex + 1, synthesisIndex + 8).join(" ") : "";
+  const synthesis = synthesisIndex >= 0 ? lines.slice(synthesisIndex + 1, synthesisIndex + 8).join(" ") : parseA2FlatSynthesis(text);
   return { patterns: patterns.length ? patterns : clone(defaultData.a2.patterns), synthesis: cleanExtract(synthesis) };
+}
+
+function parseA2FlatText(text, patternTypes) {
+  const normalized = normalizeUploadText(text);
+  const rows = [];
+  for (const type of patternTypes) {
+    const startPattern = new RegExp(`${type}\\s+Pattern`, "i");
+    const startMatch = normalized.match(startPattern);
+    if (!startMatch) continue;
+    const start = startMatch.index + startMatch[0].length;
+    const rest = normalized.slice(start);
+    const nextMatches = patternTypes
+      .filter((candidate) => candidate !== type)
+      .map((candidate) => {
+        const match = rest.match(new RegExp(`${candidate}\\s+Pattern`, "i"));
+        return match ? match.index : -1;
+      })
+      .filter((index) => index >= 0);
+    const stepMatch = rest.match(/Step\s+3|Short\s+Synthesis/i);
+    if (stepMatch) nextMatches.push(stepMatch.index);
+    const end = nextMatches.length ? Math.min(...nextMatches) : rest.length;
+    const rawBlock = rest.slice(0, end);
+    const block = cleanExtract(rawBlock.replace(/^\s*\([^)]*\)\s*/, ""));
+    if (!block || /^who|^how|^what/i.test(block)) continue;
+    const years = (block.match(/(?:19|20)\d{2}/g) || []).join("; ");
+    const withoutYears = cleanExtract(block.replace(/(?:19|20)\d{2}/g, " "));
+    rows.push({
+      type,
+      notice: withoutYears,
+      authors: "",
+      years
+    });
+  }
+  return rows;
+}
+
+function parseA2FlatSynthesis(text) {
+  const normalized = normalizeUploadText(text);
+  const match = normalized.match(/Short\s+Synthesis[\s\S]*?(Research\s+on[\s\S]+)$/i);
+  return match ? match[1] : "";
+}
+
+function normalizeUploadText(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function parseA2PatternBlock(lines, type, patternTypes) {
+  const start = lines.findIndex((item) => new RegExp(`^${type}\\s+Pattern`, "i").test(item) || item.toLowerCase() === type.toLowerCase());
+  if (start < 0) return null;
+  const next = lines.findIndex((item, index) => index > start && (
+    patternTypes.some((candidate) => new RegExp(`^${candidate}\\s+Pattern`, "i").test(item) || item.toLowerCase() === candidate.toLowerCase()) ||
+    /step\s*3|short\s+synthesis/i.test(item)
+  ));
+  const block = lines.slice(start + 1, next > start ? next : undefined)
+    .filter((line) => !/pattern type|supporting authors|what do you notice|^year$/i.test(line));
+  if (!block.length) return null;
+
+  const yearLines = [];
+  const authorLines = [];
+  const noticeLines = [];
+  block.forEach((line, index) => {
+    if (/(19|20)\d{2}/.test(line)) {
+      yearLines.push(line);
+      if (index > 0 && !/(19|20)\d{2}/.test(block[index - 1])) {
+        authorLines.push(block[index - 1]);
+      }
+      return;
+    }
+    if (index + 1 < block.length && /(19|20)\d{2}/.test(block[index + 1])) return;
+    noticeLines.push(line);
+  });
+
+  return {
+    type,
+    notice: cleanExtract(noticeLines.join(" ").replace(/^\([^)]*\)/, "")),
+    authors: cleanExtract([...new Set(authorLines)].join("; ")),
+    years: cleanExtract(yearLines.join("; "))
+  };
 }
 
 function parseA3Upload(text) {
@@ -1751,20 +1826,15 @@ function parseA3Upload(text) {
   const patternTypes = ["Context", "Method", "Theory", "Evidence", "Practice", "Population", "Definition"];
   const gaps = [];
   for (const type of patternTypes) {
-    const line = lines.find((item) => item.toLowerCase().startsWith(type.toLowerCase()) && /limited|less visible|understanding|because studies/i.test(item));
-    if (line) {
-      const parts = line.split(/\t|\s{2,}|\|/).map((part) => part.trim()).filter(Boolean);
-      gaps.push({
-        type,
-        show: cleanExtract(parts[1] || ""),
-        emphasized: cleanExtract(parts[2] || ""),
-        lessVisible: cleanExtract(parts[3] || ""),
-        limits: cleanExtract(parts[4] || ""),
-        gap: cleanExtract(parts[5] || line)
-      });
-    }
+    const row = parseA3GapBlock(lines, type, patternTypes);
+    if (row) gaps.push(row);
   }
-  const finalGap = afterLabel(text, ["Final Gap", "Write your selected strongest gap clearly", "Gap statement based on A3 matrix"]) || lines.find((line) => /limited understanding|limited clarity/i.test(line)) || "";
+  const usableGaps = gaps.filter((row) => row.show || row.emphasized || row.lessVisible || row.limits || row.gap);
+  if (usableGaps.length < 1) {
+    const flatGaps = parseA3FlatText(text, patternTypes);
+    if (flatGaps.length) gaps.splice(0, gaps.length, ...flatGaps);
+  }
+  const finalGap = afterLabel(text, ["Final Gap", "Write your selected strongest gap clearly", "Gap statement based on A3 matrix"]) || parseA3FlatFinalGap(text) || lines.find((line) => /limited understanding|limited clarity/i.test(line)) || "";
   return {
     gaps: gaps.length ? gaps : clone(defaultData.a3.gaps),
     strongestGap: cleanExtract(afterLabel(text, ["Strongest gap"])),
@@ -1772,6 +1842,66 @@ function parseA3Upload(text) {
     selectionReason: cleanExtract(afterLabel(text, ["Reason"])),
     finalGap: cleanExtract(finalGap)
   };
+}
+
+function parseA3GapBlock(lines, type, patternTypes) {
+  const start = lines.findIndex((item) => item.toLowerCase() === type.toLowerCase() || new RegExp(`^${type}\\b`, "i").test(item));
+  if (start < 0) return null;
+  const next = lines.findIndex((item, index) => index > start && (
+    patternTypes.some((candidate) => item.toLowerCase() === candidate.toLowerCase() || new RegExp(`^${candidate}\\b`, "i").test(item)) ||
+    /craft your gap|step\s*1|gap statement based on a3 matrix/i.test(item)
+  ));
+  const block = lines.slice(start + 1, next > start ? next : undefined)
+    .filter((line) => !/pattern|studies|emphasized|captured|less visible|limits us|refined gap/i.test(line));
+  if (!block.length) return null;
+  const parts = block.join(" | ").split(/\s*\|\s*|\t|\s{3,}/).map((part) => cleanExtract(part)).filter(Boolean);
+  return {
+    type,
+    show: parts[0] || "",
+    emphasized: parts[1] || "",
+    lessVisible: parts[2] || "",
+    limits: parts[3] || "",
+    gap: parts.slice(4).join(" ") || parts[3] || ""
+  };
+}
+
+function parseA3FlatText(text, patternTypes) {
+  const normalized = normalizeUploadText(text);
+  const rows = [];
+  for (const type of patternTypes) {
+    const startMatch = normalized.match(new RegExp(`\\b${type}\\b`, "i"));
+    if (!startMatch) continue;
+    const start = startMatch.index + startMatch[0].length;
+    const rest = normalized.slice(start);
+    const nextMatches = patternTypes
+      .filter((candidate) => candidate !== type)
+      .map((candidate) => {
+        const match = rest.match(new RegExp(`\\b${candidate}\\b`, "i"));
+        return match ? match.index : -1;
+      })
+      .filter((index) => index >= 0);
+    const stepMatch = rest.match(/Craft your gap|Step\s*1|Gap statement based on A3 matrix/i);
+    if (stepMatch) nextMatches.push(stepMatch.index);
+    const end = nextMatches.length ? Math.min(...nextMatches) : rest.length;
+    const block = cleanExtract(rest.slice(0, end));
+    if (!block || /^(from a1|pattern|type)$/i.test(block)) continue;
+    const sentences = block.split(/(?<=[.!?])\s+/).map((item) => cleanExtract(item)).filter(Boolean);
+    rows.push({
+      type,
+      show: sentences[0] || block,
+      emphasized: sentences[1] || "",
+      lessVisible: sentences[2] || "",
+      limits: sentences[3] || "",
+      gap: sentences.slice(4).join(" ") || sentences[3] || ""
+    });
+  }
+  return rows;
+}
+
+function parseA3FlatFinalGap(text) {
+  const normalized = normalizeUploadText(text);
+  const match = normalized.match(/Gap statement based on A3 matrix\s*:?\s*([\s\S]+)$/i);
+  return match ? match[1] : "";
 }
 
 function cleanExtract(text) {
@@ -1817,21 +1947,39 @@ function uploadCard(title, data) {
   return `<div class="upload-card"><h3>${escapeHtml(title)}</h3><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre></div>`;
 }
 
+function parseUploadedText(sourceName, text, expectedStage = uploadTargetStage) {
+  const type = detectFormType(sourceName, text);
+  if (type !== expectedStage) {
+    return {
+      type,
+      data: null,
+      message: `${sourceName}: ${type === "unknown" ? "not recognized" : `${type.toUpperCase()} detected, but current target is ${expectedStage.toUpperCase()}`}`
+    };
+  }
+  let data = null;
+  if (type === "a1") data = parseA1Upload(text);
+  if (type === "a2") data = parseA2Upload(text);
+  if (type === "a3") data = parseA3Upload(text);
+  return {
+    type,
+    data,
+    message: `${sourceName}: ${type.toUpperCase()} detected and ready for review`
+  };
+}
+
 async function handleFormUpload(files) {
   const extracted = {};
   const messages = [];
   for (const file of files) {
     try {
       const text = await extractUploadFile(file);
-      const type = detectFormType(file.name, text);
-      if (type !== uploadTargetStage) {
-        messages.push(`${file.name}: ${type === "unknown" ? "not recognized" : `${type.toUpperCase()} detected, but current target is ${uploadTargetStage.toUpperCase()}`}`);
+      const parsed = parseUploadedText(file.name, text);
+      if (!parsed.data) {
+        messages.push(parsed.message);
         continue;
       }
-      if (type === "a1") extracted.a1 = { ...(extracted.a1 || {}), ...parseA1Upload(text) };
-      if (type === "a2") extracted.a2 = { ...(extracted.a2 || {}), ...parseA2Upload(text) };
-      if (type === "a3") extracted.a3 = { ...(extracted.a3 || {}), ...parseA3Upload(text) };
-      messages.push(`${file.name}: ${type.toUpperCase()} detected and ready for review`);
+      extracted[parsed.type] = { ...(extracted[parsed.type] || {}), ...parsed.data };
+      messages.push(parsed.message);
     } catch (error) {
       messages.push(`${file.name}: ${error.message}`);
     }
@@ -1843,6 +1991,22 @@ async function handleFormUpload(files) {
   `;
 }
 
+function handlePastedText() {
+  const text = document.getElementById("formPasteText").value.trim();
+  if (!text) {
+    document.getElementById("uploadFeedback").innerHTML = `<div class="feedback-item yellow">Paste copied ${uploadTargetStage.toUpperCase()} text first.</div>`;
+    return null;
+  }
+  const sourceName = `${uploadTargetStage.toUpperCase()} pasted text`;
+  const parsed = parseUploadedText(sourceName, text);
+  pendingUploadByStage[uploadTargetStage] = parsed.data || null;
+  document.getElementById("uploadFeedback").innerHTML = `
+    <div class="feedback-item ${parsed.data ? "green" : "yellow"}">${escapeHtml(parsed.message)}</div>
+    ${uploadPreviewHtml({ [uploadTargetStage]: pendingUploadByStage[uploadTargetStage] })}
+  `;
+  return parsed.data;
+}
+
 function openUploadDialog() {
   if (!uploadStageIds.includes(state.currentStage)) {
     alert("Upload is available only for A1, A2, and A3 accomplished forms. Go to A1, A2, or A3 first.");
@@ -1852,9 +2016,10 @@ function openUploadDialog() {
   uploadTargetStage = stageId;
   const stage = stages.find((item) => item.id === stageId);
   document.getElementById("uploadDialogTitle").textContent = `Upload ${stage.code} Accomplished Form`;
-  document.getElementById("uploadDialogHint").textContent = `Upload the accomplished ${stage.code} form as DOCX, PDF, or text. The extracted entries will apply only to ${stage.code}: ${stage.title}.`;
+  document.getElementById("uploadDialogHint").textContent = `Upload the accomplished ${stage.code} form as DOCX or text, or paste copied text below. The extracted entries will apply only to ${stage.code}: ${stage.title}.`;
   document.getElementById("applyUploadBtn").textContent = `Apply to ${stage.code}`;
   document.getElementById("formUploadFile").value = "";
+  document.getElementById("formPasteText").value = "";
   pendingUploadByStage[stageId] = null;
   document.getElementById("uploadFeedback").textContent = `No ${stage.code} file selected yet.`;
   document.getElementById("uploadDialog").showModal();
@@ -1970,10 +2135,15 @@ function attachEvents() {
   document.getElementById("clearUploadBtn").addEventListener("click", () => {
     pendingUploadByStage[uploadTargetStage] = null;
     document.getElementById("formUploadFile").value = "";
+    document.getElementById("formPasteText").value = "";
     document.getElementById("uploadFeedback").textContent = `No ${uploadTargetStage.toUpperCase()} file selected yet.`;
   });
+  document.getElementById("readPastedTextBtn").addEventListener("click", handlePastedText);
   document.getElementById("applyUploadBtn").addEventListener("click", () => {
-    const pending = pendingUploadByStage[uploadTargetStage];
+    let pending = pendingUploadByStage[uploadTargetStage];
+    if (!pending && document.getElementById("formPasteText").value.trim()) {
+      pending = handlePastedText();
+    }
     if (!pending) {
       alert(`Upload and review an ${uploadTargetStage.toUpperCase()} form first.`);
       return;

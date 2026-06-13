@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lit-Based Proposal Builder Upload Version</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles-upload.css?v=20260612-v331-upload-detection" />
+    <link rel="stylesheet" href="styles-upload.css?v=20260612-v331-a3-upload-fix" />
   </head>
   <body>
     <div class="app-shell">
@@ -211,8 +211,13 @@
         <button class="ghost" id="closeUploadBtn" type="button">Close</button>
       </div>
       <section class="upload-panel">
-        <p class="hint" id="uploadDialogHint">Upload the accomplished form for the current A-stage as DOCX, PDF, or text. The app will extract text and prepare suggested entries. Please review before applying.</p>
-        <input id="formUploadFile" type="file" accept=".docx,.pdf,.txt" multiple />
+        <p class="hint" id="uploadDialogHint">Upload the accomplished form for the current A-stage as DOCX or text, or paste copied text below. Please review before applying.</p>
+        <input id="formUploadFile" type="file" accept=".docx,.txt" multiple />
+        <div class="field full">
+          <label for="formPasteText">Or paste copied text from the accomplished form</label>
+          <textarea id="formPasteText" rows="8" placeholder="Paste the copied A1, A2, or A3 form text here."></textarea>
+        </div>
+        <button class="ghost" id="readPastedTextBtn" type="button">Read Pasted Text</button>
         <div id="uploadFeedback" class="feedback">No files selected yet.</div>
       </section>
       <div class="dialog-actions">
@@ -223,6 +228,6 @@
 
     <input id="importFile" type="file" accept="application/json" hidden />
     <script src="jszip.min.js"></script>
-    <script src="app-upload.js?v=20260612-v331-upload-detection"></script>
+    <script src="app-upload.js?v=20260612-v331-a3-upload-fix"></script>
   </body>
 </html>
